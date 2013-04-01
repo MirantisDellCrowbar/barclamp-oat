@@ -51,3 +51,13 @@ debs:
     repos:
       - deb http://archive.canonical.com/ubuntu precise partner
     
+locale_additions:
+  en:
+    nav:
+      oat: OAT
+    barclamp:
+      ceilometer:
+        edit_attributes:
+          attributes: Attributes
+      ceilometer_edit_deployment:
+        deployment: Deployment
