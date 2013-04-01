@@ -33,7 +33,7 @@ barclamp:
   member:
     - openstack
   os_support:
-    - ubuntu-12.10
+    - ubuntu-12.04
 
 crowbar:
   layout: 1
@@ -47,7 +47,7 @@ debs:
     - oat-appraiser
     - oat-client
     - oat-commandtool
-  ubuntu-12.10:
+  ubuntu-12.04:
     repos:
-      - deb http://archive.canonical.com/ubuntu quantal partner
+      - deb http://archive.canonical.com/ubuntu precise partner
     
