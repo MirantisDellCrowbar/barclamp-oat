@@ -1,0 +1,10 @@
+[DEFAULT]
+# Show more verbose log output (sets INFO log level output)
+verbose = <%= node[:oat][:verbose] %>
+
+# Show debugging output in logs (sets DEBUG log level output)
+debug = <%= node[:oat][:debug] %>
+
+[app:oat-api]
+paste.app_factory = oat.server:app_factory
+

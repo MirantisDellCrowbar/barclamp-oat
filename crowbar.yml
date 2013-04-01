@@ -1,0 +1,53 @@
+# Copyright 2013, Mirantis
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Author: RobHirschfeld
+#
+# This file directs the installation of the barclamp by the Crowbar Framework
+# The major compoents are
+#    barclamp: detalis about the barclamp
+#    crowbar: installation instructions
+#    nav: (optional) injects items into the Crowbar UI menu
+#    debs/rpms/gems: components needs by the barclamp
+
+barclamp:
+  name: oat
+  display: Oat
+  description: A way to maximize awesomeness for Oat
+  proposal_schema_version: 1
+  user_managed: true
+  version: 0
+  requires:
+    - @crowbar
+  member:
+    - openstack
+  os_support:
+    - ubuntu-12.10
+
+crowbar:
+  layout: 1
+  order: 1000
+  run_order: 1000
+  chef_order: 1000
+  proposal_schema_version: 2
+
+debs:
+  pkgs:
+    - oat-appraiser
+    - oat-client
+    - oat-commandtool
+  ubuntu-12.10:
+    repos:
+      - deb http://archive.canonical.com/ubuntu quantal partner
+    

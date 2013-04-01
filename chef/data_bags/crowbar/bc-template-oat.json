@@ -1,0 +1,31 @@
+{
+  "id": "bc-template-oat",
+  "description": "Installation for Oat",
+  "attributes": {
+    "oat": {
+      "foo": "bar"
+    }
+  },
+  "deployment": {
+    "oat": {
+      "crowbar-revision": 0,
+      "element_states": {
+        "oat-server": [ "readying", "ready", "applying" ],
+        "oat-client": [ "readying", "ready", "applying" ]
+      },
+      "elements": {},
+      "element_order": [
+        [ "oat-server" ],
+        [ "oat-client" ]
+      ],
+      "config": {
+        "environment": "oat-base-config",
+        "mode": "full",
+        "transitions": false,
+        "transition_list": [
+        ]
+      }
+    }
+  }
+}
+
