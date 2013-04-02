@@ -24,6 +24,18 @@ end
 mysql_address = Chef::Recipe::Barclamp::Inventory.get_network_by_type(mysql, "admin").address if mysql_address.nil?
 Chef::Log.info("Mysql server found at #{mysql_address}")
 
+cf = cookbook_file "/root/create_tables.sql" do
+  source "create_tables.sql"
+  action :nothing
+end
+cf.run_action(:create)
+
+execute "create_tables_for_oat" do
+  command "mysql -u #{node[:oat][:db][:user]} -p#{node[:oat][:db][:password]} -h #{mysql_address} #{node[:oat][:db][:database]} < /root/create_tables.sql"
+  ignore_failure true
+  action :nothing
+end
+
 mysql_database "create #{node[:oat][:db][:database]} oat database" do
     host    mysql_address
     username "db_maker"
@@ -39,6 +51,7 @@ mysql_database "create oat database user #{node[:oat][:db][:user]}" do
     database node[:oat][:db][:database]
     action :query
     sql "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER on #{node[:oat][:db][:database]}.* to '#{node[:oat][:db][:user]}'@'%' IDENTIFIED BY '#{node[:oat][:db][:password]}';"
+    notifies :run, resources(:execute => "create_tables_for_oat"), :immediately
 end
 
 template "/etc/dbconfig-common/oat-appraiser.conf" do
