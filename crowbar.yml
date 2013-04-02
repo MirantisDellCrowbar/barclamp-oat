@@ -30,6 +30,7 @@ barclamp:
   version: 0
   requires:
     - @crowbar
+    - mysql
   member:
     - openstack
   os_support:

@@ -3,7 +3,12 @@
   "description": "Installation for Oat",
   "attributes": {
     "oat": {
-      "foo": "bar"
+      "db": {
+        "database": "oat_db",
+        "user": "oat",
+        "password": ""
+      },
+      "mysql_instance": "none"
     }
   },
   "deployment": {

@@ -12,7 +12,16 @@
           "type": "map",
           "required": true,
           "mapping": {
-            "foo": { "type": "str", "required": true }
+            "mysql_instance": { "type": "str", "required": true },
+            "db": {
+              "type": "map",
+              "required": true,
+              "mapping": {
+                "database": { "type": "str", "required": true },
+                "user": { "type": "str", "required": true },
+                "password": { "type": "str" }
+              }
+            }
           }
         }
       }

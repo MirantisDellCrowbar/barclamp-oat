@@ -19,6 +19,12 @@ class OatService < ServiceObject
     @bc_name = "oat"
     @logger = thelogger
   end
+
+  def proposal_dependencies(role)
+    answer = []
+    answer << { "barclamp" => "mysql", "inst" => role.default_attributes["oat"]["mysql_instance"] }
+    answer
+  end
   
   #if barclamp allows multiple proposals OVERRIDE
   # def self.allow_multiple_proposals?
@@ -35,6 +41,21 @@ class OatService < ServiceObject
       }
     end
 
+    base["attributes"]["oat"]["mysql_instance"] = ""
+    begin
+      mysqlService = MysqlService.new(@logger)
+      # Look for active roles
+      mysqls = mysqlService.list_active[1]
+      if mysqls.empty?
+        # No actives, look for proposals
+        mysqls = mysqlService.proposals[1]
+      end
+      base["attributes"]["oat"]["mysql_instance"] = mysqls[0] unless mysqls.empty?
+    rescue
+      @logger.info("Oat create_proposal: no mysql found")
+    end
+    
+
     @logger.debug("Oat create_proposal: exiting")
     base
   end
@@ -43,16 +64,18 @@ class OatService < ServiceObject
     @logger.debug("Oat apply_role_pre_chef_call: entering #{all_nodes.inspect}")
     return if all_nodes.empty?
 
-    # Make sure the bind hosts are in the admin network
-    all_nodes.each do |n|
-      node = NodeObject.find_node_by_name n
-
-      admin_address = node.get_network_by_type("admin")["address"]
-      node.crowbar[:oat] = {} if node.crowbar[:oat].nil?
-      node.crowbar[:oat][:api_bind_host] = admin_address
-
-      node.save
+    om = old_role ? old_role.default_attributes["oat"] : {}
+    nm = role.default_attributes["oat"]
+    begin
+      if om["db"]["password"]
+        nm["db"]["password"] = om["db"]["password"]
+      else
+        nm["db"]["password"] = random_password
+      end
+    rescue
+      nm["db"]["password"] = random_password
     end
+    role.save 
     @logger.debug("Oat apply_role_pre_chef_call: leaving")
   end
 
