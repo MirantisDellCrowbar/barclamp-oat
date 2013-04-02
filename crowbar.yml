@@ -48,6 +48,11 @@ debs:
     - oat-appraiser
     - oat-client
     - oat-commandtool
+    - openjdk-6-jdk
+    - openssl
+    - trousers
+    - libtspi1
+    - openjdk-6-jre
   ubuntu-12.04:
     repos:
       - deb http://archive.canonical.com/ubuntu precise partner
