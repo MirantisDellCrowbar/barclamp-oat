@@ -63,10 +63,10 @@ template "/etc/dbconfig-common/oat-appraiser.conf" do
            )
 end
 
-[ { "k": "password", "t": "password", "v": node[:oat][:password] },
-  { "k": "old-password", "t": "password", "v": node[:oat][:password] },
-  { "k": "hostname", "t": "string", "v": node[:fqdn] },
-  { "k": "old-hostname", "t": "string", "v": node[:fqdn] },
+[ { "k" => "password", "t" => "password", "v" => node[:oat][:password] },
+  { "k" => "old-password", "t" => "password", "v" => node[:oat][:password] },
+  { "k" => "hostname", "t" => "string", "v" => node[:fqdn] },
+  { "k" => "old-hostname", "t" => "string", "v" => node[:fqdn] },
 ].each { |x|
   execute "set_#{x['k']}_for_oat-appraiser-installation" do
     command "echo oat-appraiser oat-appraiser/#{x['k']} #{x['t']} #{x['v']} | debconf-set-selections"

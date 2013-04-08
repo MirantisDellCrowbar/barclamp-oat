@@ -62,8 +62,9 @@ locale_additions:
     nav:
       oat: OAT
     barclamp:
-      ceilometer:
+      oat:
         edit_attributes:
           attributes: Attributes
-      ceilometer_edit_deployment:
+          mysql_instance: MySQL
+      oat_edit_deployment:
         deployment: Deployment
