@@ -55,6 +55,8 @@ mysql_database "create oat database user #{node[:oat][:db][:user]}" do
     notifies :run, resources(:execute => "create_tables_for_oat"), :immediately
 end
 
+package "dbconfig-common"
+
 template "/etc/dbconfig-common/oat-appraiser.conf" do
   source "oat-appraiser.conf.erb"
   variables(:db_user => node[:oat][:db][:user],
@@ -64,13 +66,10 @@ template "/etc/dbconfig-common/oat-appraiser.conf" do
 end
 
 [ { "k" => "password", "t" => "password", "v" => node[:oat][:password] },
-  { "k" => "old-password", "t" => "password", "v" => node[:oat][:password] },
   { "k" => "hostname", "t" => "string", "v" => node[:fqdn] },
-  { "k" => "old-hostname", "t" => "string", "v" => node[:fqdn] },
 ].each { |x|
   execute "set_#{x['k']}_for_oat-appraiser-installation" do
     command "echo oat-appraiser oat-appraiser/#{x['k']} #{x['t']} #{x['v']} | debconf-set-selections"
-    not_if { File.exists? '/etc/oat-appraiser/server.xml' }
   end
 }
 
@@ -78,6 +77,13 @@ ENV['DB_CONFIGURED'] = 'true'
 ENV['DEBIAN_FRONTEND'] = 'noninteractive'
 package "oat-appraiser" do
   options "--force-yes"
+end
+
+# just in case if post-inst script failed to create keys
+execute "create_keystore" do
+  command "/usr/share/oat-appraiser/scripts/generate-keystores #{node[:fqdn]} #{node[:oat][:password]} 2>&1 >/dev/null"
+  ignore_failure true
+  not_if { File.exists? "/var/lib/oat-appraiser/Certificate/keystore.jks" } 
 end
 
 execute "restart_tomcat6_service" do

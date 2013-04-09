@@ -53,6 +53,8 @@ debs:
     - trousers
     - libtspi1
     - openjdk-6-jre
+    - tpm-tools
+    - dbconfig-common
   ubuntu-12.04:
     repos:
       - deb http://archive.canonical.com/ubuntu precise partner
