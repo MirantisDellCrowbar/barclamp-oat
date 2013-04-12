@@ -6,7 +6,8 @@
   $(document).ready(function(){
     var constraints = { 
       "oat-server": { "unique": false, "count": 1, "admin":false }, 
-      "oat-client": { "unique": false, "count": -1, "admin":false } 
+      "oat-client": { "unique": false, "count": -1, "admin":false,
+                      "attribute" : "cpu/0/flags", "include" : "smx" }
     };
     node_selector($('#drag_drop'), constraints);
   });
