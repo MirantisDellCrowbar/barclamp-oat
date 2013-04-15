@@ -55,9 +55,20 @@ debs:
     - openjdk-6-jre
     - tpm-tools
     - dbconfig-common
+  build_pkgs:
+    - ant
+    - git
+    - g++
+    - libtspi-dev
+    - make
+    - openjdk-6-jdk
+    - unzip
+    - wget
+    - zip
   ubuntu-12.04:
     repos:
       - deb http://archive.canonical.com/ubuntu precise partner
+  build_cmd: build.sh
     
 locale_additions:
   en:
