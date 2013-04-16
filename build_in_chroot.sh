@@ -7,7 +7,7 @@ git checkout $OAT_VERSION_TAG
 cd Source
 bash download_jar_packages.sh
 bash distribute_jar_packages.sh
-сd ../Installer
+cd ../Installer
 deb.sh -s ../Source/
 
 find /tmp/debbuild/DEBS/x86_64/ -type f -name '*.deb' -exec cp '{}' /mnt/current_os/pkgs ';'
