@@ -8,6 +8,12 @@ cd Source
 bash download_jar_packages.sh
 bash distribute_jar_packages.sh
 cd ../Installer
-deb.sh -s ../Source/
+
+# cleanup postinst and postrm
+echo > ./DPKG-OAT-Appraiser-Base/DEBIAN/postinst
+echo > ./DPKG-OAT-Appraiser-Base/DEBIAN/postrm
+cp -r ../Test/. ./OAT-Appraiser-Configure/
+
+./deb.sh -s ../Source/
 
 find /tmp/debbuild/DEBS/x86_64/ -type f -name '*.deb' -exec cp '{}' /mnt/current_os/pkgs ';'
