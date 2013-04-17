@@ -14,6 +14,6 @@ echo > ./DPKG-OAT-Appraiser-Base/DEBIAN/postinst
 echo > ./DPKG-OAT-Appraiser-Base/DEBIAN/postrm
 cp -r ../Test/. ./OAT-Appraiser-Configure/
 
-./deb.sh -s ../Source/
+./deb.sh -s /OpenAttestation/Source/
 
 find /tmp/debbuild/DEBS/x86_64/ -type f -name '*.deb' -exec cp '{}' /mnt/current_os/pkgs ';'
