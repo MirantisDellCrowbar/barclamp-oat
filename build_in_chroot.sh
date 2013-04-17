@@ -10,8 +10,8 @@ bash distribute_jar_packages.sh
 cd ../Installer
 
 # cleaning up postinst and postrm
-rm ./DPKG-OAT-Appraiser-Base/DEBIAN/postinst
-rm ./DPKG-OAT-Appraiser-Base/DEBIAN/postrm
+echo > ./DPKG-OAT-Appraiser-Base/DEBIAN/postinst
+echo > ./DPKG-OAT-Appraiser-Base/DEBIAN/postrm
 # including tests as well
 cp -r ../Test/. ./OAT-Appraiser-Configure/
 
