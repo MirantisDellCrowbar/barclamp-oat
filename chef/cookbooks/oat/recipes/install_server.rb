@@ -64,7 +64,7 @@ end
 
 #create dirs
 [ "/etc/oat-appraiser", "/var/lib/oat-appraiser", "/var/lib/oat-appraiser/ClientFiles",
-  "/var/lib/oat-appraiser/CaCerts", "/var/lib/oat-appraiser/Certificate"
+  "/var/lib/oat-appraiser/CaCerts", "/var/lib/oat-appraiser/Certificate", "/usr/share/oat-appraiser"
 ].each { |d| directory d }
 
 inst_name = "OAT-Appraiser-Base"
@@ -91,24 +91,34 @@ execute "add_hostname_to_host" do
   not_if "grep `hostname` /etc/hosts"
 end
 
-cd /var/lib/oat-appraiser/Certificate/
-echo "127.0.0.1       `hostname`" >> /etc/hosts
-if [ "`echo $p12pass | grep $randpass`" ] ; then
+node.set_unless[:oat][:keystore_pass] = secure_password
+node.set_unless[:oat][:truststore_pass] = secure_password
+
+bash "create_keystore_and_truststore" do
+  cwd "/var/lib/oat-appraiser/Certificate"
+  code <<-EOH
   openssl req -x509 -nodes -days 730 -newkey rsa:2048 -keyout hostname.pem -out hostname.cer -subj "/C=US/O=U.S. Government/OU=DoD/CN=`hostname`"
   openssl pkcs12 -export -in hostname.cer -inkey hostname.pem -out $p12file -passout pass:$p12pass
-fi
+  keytool -importkeystore -srckeystore $p12file -destkeystore $keystore -srcstoretype pkcs12 -srcstorepass $p12pass -deststoretype jks -deststorepass $p12pass -noprompt
+  myalias=`keytool -list -v -keystore $keystore -storepass $p12pass | grep -B2 'PrivateKeyEntry' | grep 'Alias name:'`
+  keytool -changealias -alias ${myalias#*:} -destalias tomcat -v -keystore $keystore -storepass $p12pass
+  rm -f $truststore
+  keytool -import -keystore $truststore -storepass $truststore_pass -file hostname.cer -noprompt
+  EOH
+  environment {
+    'p12pass' => node[:oat][:keystore_pass],
+    'truststore_pass' => node[:oat][:truststore_pass],
+    'p12file' => 'internal.p12',
+    'keystore' => 'keystore.jks',
+    'truststore' => 'truststore.jks', 
+  }
+  ignore_failure true
+  not_if { File.exists? "/var/lib/oat-appraiser/Certificate/truststore.jks" }
+end
 
-keytool -importkeystore -srckeystore $p12file -destkeystore $keystore -srcstoretype pkcs12 -srcstorepass $p12pass -deststoretype jks -deststorepass $p12pass -noprompt
+# install and
+# configure tomcat6
+package "tomcat6"
 
-myalias=`keytool -list -v -keystore $keystore -storepass $p12pass | grep -B2 'PrivateKeyEntry' | grep 'Alias name:'`
-
-keytool -changealias -alias ${myalias#*:} -destalias tomcat -v -keystore $keystore -storepass $p12pass
-
-rm -f $truststore
-keytool -import -keystore $truststore -storepass password -file hostname.cer -noprompt
-
-#
-# create tables
-# config 
 
 
