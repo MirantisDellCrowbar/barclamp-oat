@@ -1,4 +1,4 @@
-<Context path="/<%= @resource_name %>" docBase="<%= @webapps_path%>/<%= @resource_name %>"
+<Context path="/<%= @resource_name %>" docBase="<%= @webapp_path%>/<%= @resource_name %>"
    debug="0" privileged="true" allowLinking="true" crossContext="true">
   <!-- make symlinks work in Tomcat -->
   <Resources className="org.apache.naming.resources.FileDirContext" allowLinking="true" />

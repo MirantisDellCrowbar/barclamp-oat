@@ -120,5 +120,53 @@ end
 # configure tomcat6
 package "tomcat6"
 
+[ "AttestationService",  "HisPrivacyCAWebServices2",
+  "HisWebServices", "WLMService"].each do |webapp|
+  template "/etc/oat-appraiser/#{webapp}.xml" do
+    source "webapp.xml.erb"
+    variables(
+      :resource_name => webapp,
+      :webapp_path => '/usr/share/oat-appraiser/webapps',
+      :db_user => node[:oat][:db][:user],
+      :db_pass => node[:oat][:db][:password],
+      :db_name => node[:oat][:db][:database],
+      :mysql_host => mysql_address
+    )
+  end
+  execute "link_service_#{webapp}" do
+    command "ln -sf /etc/oat-appraiser/#{webapp}.xml /etc/tomcat6/Catalina/localhost/"
+    not_if { File.exists? "/etc/oat-appraiser/#{webapp}.xml" }
+  end
+end
 
+template "/etc/oat-appraiser/server.xml" do
+  source "server.xml.erb"
+end
+
+bash "deploy_server_xml" do
+  code <<-EOH
+  rm -f /etc/tomcat6/server.xml
+  ln -sf /etc/oat-appraiser/server.xml /etc/tomcat6/server.xml
+  EOH
+  not_if { File.symlimk? "/etc/tomcat6/server.xml" }
+end
+
+bash "deploy_wars" do
+  cwd "/#{inst_name}"
+  code <<-EOH
+  mkdir -p /usr/share/oat-appraiser/webapps/
+  unzip /$name/OAT_Server_Install.zip -d /$name/
+  cp -R /$name/OAT_Server_Install/HisWebServices $WEBAPP_DIR/
+  
+  cp /$name/OAT_Server_Install/WLMService.war $WEBAPP_DIRs/
+  cp /$name/OAT_Server_Install/AttestationService.war $WEBAPP_DIR/
+  cp /$name/HisPrivacyCAWebServices2.war $WEBAPP_DIR/
+  mv $WEBAPP_DIR/AttestationService/WEB-INF/classes/OpenAttestationWebServices.properties /etc/oat-appraiser/OpenAttestationWebServices.properties
+  #configuring hibernateHis for OAT appraiser setup
+  cp /$name/OAT_Server_Install/hibernateOat.cfg.xml $WEBAPP_DIR/webapps/HisWebServices/WEB-INF/classes/
+  mv $WEBAPP_DIR/webapps/HisWebServices/WEB-INF/classes/OpenAttestation.properties /etc/oat-appraiser/
+
+EOH
+  not_if { File.exists? "/usr/share/oat-appraiser/webapps/" }
+end
 
