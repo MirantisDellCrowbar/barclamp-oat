@@ -111,4 +111,21 @@ template "/etc/init.d/OATClient" do
   variables (
     :clientpath => clientpath
   )
+  notifies :restart, resources(:service => "OATClient")
 end
+
+template "#{clientpath}/OAT.properties"
+  source "OAT.properties.erb"
+  variables (
+    :source => source,
+    :keyauth => #{node[:oat][:owner_auth]},
+    :keyindex => 1
+  )
+  notifies :restart, resources(:service => "OATClient")
+end
+
+
+service "OATClient" do
+  supports :status => true, :restart => true
+  action [:enable, :start]
+end 
