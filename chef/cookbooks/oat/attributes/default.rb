@@ -20,3 +20,4 @@ node[:oat][:monitor]={}
 node[:oat][:monitor][:svcs] = []
 node[:oat][:monitor][:ports]={}
 
+node[:oat][:pcr]={}
