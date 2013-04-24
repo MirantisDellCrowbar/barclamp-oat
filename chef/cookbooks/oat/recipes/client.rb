@@ -4,6 +4,14 @@
 #
 #
 
+include_recipe "oat::bios"
+include_recipe "oat::tboot"
+#if necesary (bios updated or tboot is installed or something)
+include_recipe "oat::reboot"
+#end
+include_recipe "oat::pcr"
+
+
 #NOTE: assumed that server exists
 oat_server =( search(:node, "roles:oat-server") || [] ).first
 package "trousers"
