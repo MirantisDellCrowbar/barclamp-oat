@@ -19,5 +19,5 @@ override[:oat][:user]="oat"
 node[:oat][:monitor]={}
 node[:oat][:monitor][:svcs] = []
 node[:oat][:monitor][:ports]={}
-
+node[:oat][:owner_auth]=""
 node[:oat][:pcr]={}
