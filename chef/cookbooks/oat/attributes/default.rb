@@ -21,3 +21,8 @@ node[:oat][:monitor][:svcs] = []
 node[:oat][:monitor][:ports]={}
 node[:oat][:owner_auth]=""
 node[:oat][:pcr]={}
+
+node[:oat][:server][:port] = 8443
+node[:oat][:server][:secure] = true
+node[:oat][:server][:secret] = nil
+
