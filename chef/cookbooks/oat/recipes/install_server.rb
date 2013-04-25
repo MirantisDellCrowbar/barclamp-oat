@@ -103,7 +103,7 @@ node.set_unless[:oat][:truststore_pass] = secure_password
 bash "create_keystore_and_truststore" do
   cwd "/var/lib/oat-appraiser/Certificate"
   code <<-EOH
-  openssl req -x509 -nodes -days 730 -newkey rsa:2048 -keyout hostname.pem -out hostname.cer -subj "/C=US/O=U.S. Government/OU=DoD/CN=`hostname`"
+  openssl req -x509 -nodes -days 730 -newkey rsa:2048 -keyout hostname.pem -out hostname.cer -subj "/C=US/O=U.S. Government/OU=DoD/CN=#{node[:fqdn]}"
   openssl pkcs12 -export -in hostname.cer -inkey hostname.pem -out $p12file -passout pass:$p12pass
   keytool -importkeystore -srckeystore $p12file -destkeystore $keystore -srcstoretype pkcs12 -srcstorepass $p12pass -deststoretype jks -deststorepass $p12pass -noprompt
   myalias=`keytool -list -v -keystore $keystore -storepass $p12pass | grep -B2 'PrivateKeyEntry' | grep 'Alias name:'`
@@ -116,10 +116,10 @@ bash "create_keystore_and_truststore" do
     'truststore_pass' => node[:oat][:truststore_pass],
     'p12file' => 'internal.p12',
     'keystore' => 'keystore.jks',
-    'truststore' => 'truststore.jks'
+    'truststore' => 'TrustStore.jks'
   })
   ignore_failure true
-  not_if { File.exists? "/var/lib/oat-appraiser/Certificate/truststore.jks" }
+  not_if { File.exists? "/var/lib/oat-appraiser/Certificate/TrustStore.jks" }
 end
 
 # install and
@@ -176,19 +176,41 @@ bash "deploy_wars" do
   unzip -o /$name/OAT_Server_Install/WLMService.war -d $WEBAPP_DIR/WLMService 
   unzip -o /$name/OAT_Server_Install/AttestationService.war -d $WEBAPP_DIR/AttestationService 
   unzip -o /$name/HisPrivacyCAWebServices2.war -d $WEBAPP_DIR/HisPrivacyCAWebServices2
-  mv $WEBAPP_DIR/AttestationService/WEB-INF/classes/OpenAttestationWebServices.properties /etc/oat-appraiser/OpenAttestationWebServices.properties
+  rm $WEBAPP_DIR/AttestationService/WEB-INF/classes/OpenAttestationWebServices.properties /etc/oat-appraiser/OpenAttestationWebServices.properties
   cp /$name/OAT_Server_Install/hibernateOat.cfg.xml $WEBAPP_DIR/HisWebServices/WEB-INF/classes/
-  mv $WEBAPP_DIR/HisWebServices/WEB-INF/classes/OpenAttestation.properties /etc/oat-appraiser/
+  rm $WEBAPP_DIR/HisWebServices/WEB-INF/classes/OpenAttestation.properties /etc/oat-appraiser/
   rm -rf $WEBAPP_DIR/HisPrivacyCAWebServices2/CaCerts
   rm -rf $WEBAPP_DIR/HisPrivacyCAWebServices2/ClientFiles/
 EOH
-  not_if { File.exists? "/usr/share/oat-appraiser/webapps/HisWebServices/META-INF" }
+  not_if { File.exists? "/usr/share/oat-appraiser/webapps/HisWebServices/WEB-INF" }
+end
+
+#NOTE(agordeev): move this into template later
+execute "deploy_setup.properties" do
+  command "unzip -o /#{inst_name}/setupProperties.zip -d /etc/oat-appraiser"
+  not_if { File.exists? "/etc/oat-appraiser/setup.properties" }
+end
+
+[ "/etc/oat-appraiser", "/var/lib/oat-appraiser"].each do |d|
+  execute "fix_file_permissions_for_#{d}" do
+    command "chown -R tomcat6:tomcat6 #{d}"
+    not_if { File.stat(d).uid > 0 }
+  end
+end
+
+[ "OpenAttestation", "OpenAttestationWebServices", "OAT" ].each do |prop|
+  template "/etc/oat-appraiser/#{prop}.properties" do
+    source "#{prop}.properties.erb"
+  end
 end
 
 service "tomcat6" do
   action [ :enable, :start ]
   subscribes :restart, "bash[deploy_wars]", :immediately
   subscribes :restart, "bash[deploy_server_xml]"
+  subscribes :restart, "template[/etc/oat-appraiser/OpenAttestation.properties]"
+  subscribes :restart, "template[/etc/oat-appraiser/OpenAttestationWebServices.properties]"
+  subscribes :restart, "template[/etc/oat-appraiser/OAT.properties]"
 end
 
 service "apache2" do
@@ -212,7 +234,7 @@ template "/var/www/OAT/includes/dbconnect.php" do
     :db_user => node[:oat][:db][:user],
     :db_pass => node[:oat][:db][:password],
     :db_name => node[:oat][:db][:database],
-    :mysql_host => mysql_address
+    :db_host => mysql_address
   )
   notifies :restart, "service[apache2]"  
 end

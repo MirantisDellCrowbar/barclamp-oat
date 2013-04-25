@@ -16,7 +16,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 /* dbconnect is tasked with connecting to the database. To run any MYSQL query this file must be used. It is best to AVOID the use of ROOT when connecting to the database. In an ideal world
  * the login information reall should be set to an account that has restricted priviledges to only the HISDB and its content. This will limit damage if someone finds a hole.
  */
-$server = '<%= @mysql_address %>';                                  //server name
+$server = '<%= @db_host %>';                                  //server name
 $user = "<%= @db_user %>";                                 //MYSQL access user name
 $pass = "<%= @db_pass %>";                               //MYSQL access account password
 $connect = mysql_connect($server, $user, $pass);        //connect to the MYSQL server
