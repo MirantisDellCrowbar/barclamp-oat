@@ -40,7 +40,7 @@ mysql_database "create oat database user #{node[:oat][:db][:user]}" do
     password mysql[:mysql][:db_maker_password]
     database node[:oat][:db][:database]
     action :query
-    sql "FLUSH PRIVILEGES; GRANT ALL ON #{node[:oat][:db][:database]}.* to '#{node[:oat][:db][:user]}'@'%' IDENTIFIED BY '#{node[:oat][:db][:password]}';"
+    sql "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON #{node[:oat][:db][:database]}.* to '#{node[:oat][:db][:user]}'@'%' IDENTIFIED BY '#{node[:oat][:db][:password]}';"
 end
 
 # installing package
@@ -62,6 +62,8 @@ dpkg_package pkg_name do
   source pkg_path
 end
 
+[ "apache2", "tomcat6", "unzip", "php5", "php5-mysql", "openssl" ].each { |p| package p }
+
 #create dirs
 [ "/etc/oat-appraiser", "/var/lib/oat-appraiser", "/var/lib/oat-appraiser/ClientFiles",
   "/var/lib/oat-appraiser/CaCerts", "/var/lib/oat-appraiser/Certificate", "/usr/share/oat-appraiser"
@@ -70,20 +72,24 @@ end
 inst_name = "OAT-Appraiser-Base"
 
 execute "unzip_OAT_Setup" do
-  command "unzip /#{inst_name}/OAT_Server_Install.zip -d /#{inst_name}/"
-  not_if { File.exists? "/#{inst_name}/oat_db.MySQL" } 
+  command "unzip -o /#{inst_name}/OAT_Server_Install.zip -d /#{inst_name}/"
+  not_if { File.exists? "/#{inst_name}/OAT_Server_Install/oat_db.MySQL" } 
+end
+
+execute "fix_sql_script" do
+  command "sed -i -e '2d' /#{inst_name}/OAT_Server_Install/oat_db.MySQL"
+  action :nothing
+  subscribes :run, "execute[unzip_OAT_Setup]", :immediately
 end
 
 [ "oat_db.MySQL", "init.sql" ].each do |f|
   execute "create_tables_for_oat" do
-    command "mysql -u #{node[:oat][:db][:user]} -p#{node[:oat][:db][:password]} -h #{mysql_address} #{node[:oat][:db][:database]} < /#{inst_name}/#{f}"
+    command "mysql -u #{node[:oat][:db][:user]} -p#{node[:oat][:db][:password]} -h #{mysql_address} #{node[:oat][:db][:database]} < /#{inst_name}/OAT_Server_Install/#{f}"
     ignore_failure true
     action :nothing
     subscribes :run, "execute[unzip_OAT_Setup]", :immediately
   end
 end
-
-#TODO: oatSetup.txt
 
 #create keystore
 execute "add_hostname_to_host" do
@@ -105,72 +111,78 @@ bash "create_keystore_and_truststore" do
   rm -f $truststore
   keytool -import -keystore $truststore -storepass $truststore_pass -file hostname.cer -noprompt
   EOH
-  environment {
+  environment({
     'p12pass' => node[:oat][:keystore_pass],
     'truststore_pass' => node[:oat][:truststore_pass],
     'p12file' => 'internal.p12',
     'keystore' => 'keystore.jks',
-    'truststore' => 'truststore.jks', 
-  }
+    'truststore' => 'truststore.jks'
+  })
   ignore_failure true
   not_if { File.exists? "/var/lib/oat-appraiser/Certificate/truststore.jks" }
 end
 
 # install and
 # configure tomcat6
-package "tomcat6"
 
 webapp_dir = "/usr/share/oat-appraiser/webapps"
 [ "AttestationService", "HisPrivacyCAWebServices2", 
   "HisWebServices", "WLMService"].each do |webapp|
   template "/etc/oat-appraiser/#{webapp}.xml" do
+    mode 0640
+    group "tomcat6"
     source "webapp.xml.erb"
-    variables(
+    variables({
       :resource_name => webapp,
       :webapp_path => webapp_dir,
       :db_user => node[:oat][:db][:user],
       :db_pass => node[:oat][:db][:password],
       :db_name => node[:oat][:db][:database],
       :mysql_host => mysql_address
-    )
+    })
   end
   execute "link_service_#{webapp}" do
     command "ln -sf /etc/oat-appraiser/#{webapp}.xml /etc/tomcat6/Catalina/localhost/"
-    not_if { File.exists? "/etc/oat-appraiser/#{webapp}.xml" }
+    not_if { File.symlink? "/etc/tomcat6/Catalina/localhost/#{webapp}.xml" }
   end
   directory "#{webapp_dir}/#{webapp}" do
+    group "tomcat6"
     recursive true
   end
 end
 
 template "/etc/oat-appraiser/server.xml" do
+  mode 0640
+  group "tomcat6"
   source "server.xml.erb"
 end
 
 bash "deploy_server_xml" do
   code <<-EOH
   rm -f /etc/tomcat6/server.xml
+  rm -f /var/lib/tomcat6/conf/server.xml
   ln -sf /etc/oat-appraiser/server.xml /etc/tomcat6/server.xml
+  ln -sf /etc/oat-appraiser/server.xml /var/lib/tomcat6/conf/server.xml
   EOH
-  not_if { File.symlimk? "/etc/tomcat6/server.xml" }
+  not_if { File.symlink? "/etc/tomcat6/server.xml" }
 end
 
 bash "deploy_wars" do
   environment("WEBAPP_DIR" => webapp_dir, "name" => inst_name)
   cwd "/#{inst_name}"
   code <<-EOH
-  unzip /$name/OAT_Server_Install.zip -d /$name/
+  unzip -o /$name/OAT_Server_Install.zip -d /$name/
   cp -R /$name/OAT_Server_Install/HisWebServices $WEBAPP_DIR/
-  unzip /$name/OAT_Server_Install/WLMService.war -d $WEBAPP_DIR/WLMService 
-  unzip /$name/OAT_Server_Install/AttestationService.war -d $WEBAPP_DIR/AttestationService 
-  unzip /$name/HisPrivacyCAWebServices2.war -d $WEBAPP_DIR/HisPrivacyCAWebServices2
+  unzip -o /$name/OAT_Server_Install/WLMService.war -d $WEBAPP_DIR/WLMService 
+  unzip -o /$name/OAT_Server_Install/AttestationService.war -d $WEBAPP_DIR/AttestationService 
+  unzip -o /$name/HisPrivacyCAWebServices2.war -d $WEBAPP_DIR/HisPrivacyCAWebServices2
   mv $WEBAPP_DIR/AttestationService/WEB-INF/classes/OpenAttestationWebServices.properties /etc/oat-appraiser/OpenAttestationWebServices.properties
   cp /$name/OAT_Server_Install/hibernateOat.cfg.xml $WEBAPP_DIR/HisWebServices/WEB-INF/classes/
   mv $WEBAPP_DIR/HisWebServices/WEB-INF/classes/OpenAttestation.properties /etc/oat-appraiser/
   rm -rf $WEBAPP_DIR/HisPrivacyCAWebServices2/CaCerts
   rm -rf $WEBAPP_DIR/HisPrivacyCAWebServices2/ClientFiles/
 EOH
-  not_if { File.exists? "/usr/share/oat-appraiser/webapps/HisWebServices" }
+  not_if { File.exists? "/usr/share/oat-appraiser/webapps/HisWebServices/META-INF" }
 end
 
 service "tomcat6" do
@@ -178,8 +190,6 @@ service "tomcat6" do
   subscribes :restart, "bash[deploy_wars]", :immediately
   subscribes :restart, "bash[deploy_server_xml]"
 end
-
-package "apache2"
 
 service "apache2" do
   action [ :enable, :start ]
@@ -189,7 +199,7 @@ bash "deploy_his_portal" do
   environment("name" => inst_name)
   code <<-EOH
   rm -rf /${name}/OAT
-  unzip /${name}/OAT.zip -d /${name}/
+  unzip -o /${name}/OAT.zip -d /${name}/
   rm -rf /var/www/OAT
   mv -f /${name}/OAT /var/www/OAT
   EOH
