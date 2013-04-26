@@ -54,19 +54,19 @@ execute "install-agent" do
   not_if { ::File.exists?("/etc/init.d/OATClient") }
 end
 
-template "/tmp/#{contain}/OAT.properties"
+template "/tmp/#{contain}/OAT.properties" do
   source "OAT.properties.erb"
-  variables (
+  variables(
     :source => source,
-    :keyauth => #{node[:oat][:owner_auth]},
+    :keyauth => node[:oat][:owner_auth],
     :keyindex => 1
   )
 end
 
-template "/tmp/#{contain}/OATprovisioner.properties"
+template "/tmp/#{contain}/OATprovisioner.properties" do
   source "OATprovisioner.properties.erb"
-  variables (
-    :keyauth => #{node[:oat][:owner_auth]},
+  variables(
+    :keyauth => node[:oat][:owner_auth],
     :keyindex => 1,
     :source => source,
     :clientpath => clientpath
@@ -114,26 +114,27 @@ execute "provisioning_node" do
   not_if { ::File.exists?("/etc/init.d/OATClient") }
 end
 
+service "OATClient" do
+  supports :status => true, :restart => true
+  action [:enable, :start]
+end 
+
 template "/etc/init.d/OATClient" do
   source "OATClient.erb"
-  variables (
+  variables(
     :clientpath => clientpath
   )
   notifies :restart, resources(:service => "OATClient")
 end
 
-template "#{clientpath}/OAT.properties"
+template "#{clientpath}/OAT.properties" do
   source "OAT.properties.erb"
-  variables (
+  variables(
     :source => source,
-    :keyauth => #{node[:oat][:owner_auth]},
+    :keyauth => node[:oat][:owner_auth],
     :keyindex => 1
   )
   notifies :restart, resources(:service => "OATClient")
 end
 
 
-service "OATClient" do
-  supports :status => true, :restart => true
-  action [:enable, :start]
-end 
