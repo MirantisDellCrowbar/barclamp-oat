@@ -62,7 +62,7 @@ dpkg_package pkg_name do
   source pkg_path
 end
 
-[ "apache2", "tomcat6", "unzip", "php5", "php5-mysql", "openssl" ].each { |p| package p }
+[ "apache2", "tomcat6", "zip", "unzip", "php5", "php5-mysql", "openssl" ].each { |p| package p }
 
 #create dirs
 [ "/etc/oat-appraiser", "/var/lib/oat-appraiser", "/var/lib/oat-appraiser/ClientFiles",
@@ -253,3 +253,23 @@ template "/var/www/OAT/includes/dbconnect.php" do
   )
   notifies :restart, "service[apache2]"  
 end
+
+# prepare agent
+bash "prepare_agent" do
+  cwd "/#{inst_name}"
+  code <<-EOH
+    out_dir=ClientInstallForLinux
+    unzip ${out_dir}.zip -d .
+    rm -f ${out_dir}.zip
+    cp -r -f linuxOatInstall ${out_dir}
+    cp OAT_Standalone.jar ${out_dir}/
+    cp -r lib ${out_dir}/ 
+    cp -r -f /var/lib/oat-appraiser/ClientFiles/PrivacyCA.cer ${out_dir}/
+    cp -r -f /var/lib/oat-appraiser/ClientFiles/TrustStore.jks ${out_dir}/
+    zip -9 -r ${out_dir}.zip ${out_dir}
+    cp ${out_dir}.zip /var/www/
+  EOH
+  not_if { File.exists? "/var/www/ClientInstallForLinux.zip" }
+end
+
+
