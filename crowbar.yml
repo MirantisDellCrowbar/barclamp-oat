@@ -55,6 +55,7 @@ debs:
     - openjdk-6-jre
     - tpm-tools
     - dbconfig-common
+    - tboot
   ubuntu-12.04:
     build_pkgs:
       - ant
