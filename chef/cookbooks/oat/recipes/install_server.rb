@@ -67,7 +67,12 @@ end
 #create dirs
 [ "/etc/oat-appraiser", "/var/lib/oat-appraiser", "/var/lib/oat-appraiser/ClientFiles",
   "/var/lib/oat-appraiser/CaCerts", "/var/lib/oat-appraiser/Certificate", "/usr/share/oat-appraiser"
-].each { |d| directory d }
+].each do |d|
+  directory d do
+    owner "tomcat6"
+    group "tomcat6"
+  end
+end
 
 inst_name = "OAT-Appraiser-Base"
 
@@ -130,6 +135,7 @@ webapp_dir = "/usr/share/oat-appraiser/webapps"
   "HisWebServices", "WLMService"].each do |webapp|
   template "/etc/oat-appraiser/#{webapp}.xml" do
     mode 0640
+    owner "tomcat6"
     group "tomcat6"
     source "webapp.xml.erb"
     variables({
@@ -146,6 +152,8 @@ webapp_dir = "/usr/share/oat-appraiser/webapps"
     not_if { File.symlink? "/etc/tomcat6/Catalina/localhost/#{webapp}.xml" }
   end
   directory "#{webapp_dir}/#{webapp}" do
+    mode 0755
+    owner "tomcat6"
     group "tomcat6"
     recursive true
   end
@@ -153,6 +161,7 @@ end
 
 template "/etc/oat-appraiser/server.xml" do
   mode 0640
+  owner "tomcat6"
   group "tomcat6"
   source "server.xml.erb"
 end
@@ -194,19 +203,25 @@ end
 [ "/etc/oat-appraiser", "/var/lib/oat-appraiser"].each do |d|
   execute "fix_file_permissions_for_#{d}" do
     command "chown -R tomcat6:tomcat6 #{d}"
-    not_if { File.stat(d).uid > 0 }
+    action :nothing
+    subscribes :run, "bash[create_keystore_and_truststore]", :immediately
+    #not_if { File.stat(d).uid > 0 }
   end
 end
 
 [ "OpenAttestation", "OpenAttestationWebServices", "OAT" ].each do |prop|
   template "/etc/oat-appraiser/#{prop}.properties" do
+    mode 0640
+    owner "tomcat6"
+    group "tomcat6"
     source "#{prop}.properties.erb"
   end
 end
 
 service "tomcat6" do
   action [ :enable, :start ]
-  subscribes :restart, "bash[deploy_wars]", :immediately
+  subscribes :restart, "bash[deploy_wars]"
+  subscribes :restart, "bash[create_keystore_and_truststore]"
   subscribes :restart, "bash[deploy_server_xml]"
   subscribes :restart, "template[/etc/oat-appraiser/OpenAttestation.properties]"
   subscribes :restart, "template[/etc/oat-appraiser/OpenAttestationWebServices.properties]"
