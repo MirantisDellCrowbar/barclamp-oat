@@ -13,6 +13,17 @@
           "required": true,
           "mapping": {
             "mysql_instance": { "type": "str", "required": true },
+            "pcr_select_mask": { "type": "str", "required": true },
+            "oa_attest_interval": { "type": "int", "required": true },
+            "oa_attest_timeout": { "type": "int", "required": true },
+            "oaws_attest_timeout": { "type": "int", "required": true },
+            "oaws_check_attest_interval": { "type": "int", "required": true },
+            "alert_mail_to": { "type": "str", "required": true },
+            "alert_mail_from": { "type": "str", "required": true },
+            "alert_mail_user": { "type": "str", "required": true },
+            "alert_mail_pass": { "type": "str", "required": true },
+            "alert_mail_host": { "type": "str", "required": true },
+            "alert_mail_port": { "type": "int", "required": true },
             "db": {
               "type": "map",
               "required": true,

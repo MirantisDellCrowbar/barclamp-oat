@@ -8,6 +8,17 @@
         "user": "oat",
         "password": ""
       },
+      "pcr_select_mask": "FFFFFF",
+      "oa_attest_interval": 60000,
+      "oa_attest_timeout": 60000,
+      "oaws_attest_timeout": 50000,
+      "oaws_check_attest_interval": 1000,
+      "alert_mail_to": "oatapp_admin@localhost",
+      "alert_mail_from": "OATapp_no_reply",
+      "alert_mail_user": "smtp_user",
+      "alert_mail_pass": "smtp_pass",
+      "alert_mail_port": 25,
+      "alert_mail_host": "localhost",
       "mysql_instance": "none"
     }
   },
