@@ -84,7 +84,7 @@ execute "provisioning_node" do
     export provclasspath=".:./lib/activation.jar:./lib/axis.jar:./lib/bcprov-jdk15-141.jar:./lib/commons-discovery-0.2.jar:./lib/commons-logging-1.0.4.jar:./lib/FastInfoset.jar:./lib/HisPrivacyCAWebServices-client.jar:./lib/HisPrivacyCAWebServices2-client.jar:./lib/HisWebServices-client.jar:./lib/http.jar:./lib/jaxb-api.jar:./lib/jaxb-impl.jar:./lib/jaxb-xjc.jar:./lib/jaxrpc.jar:./lib/jaxws-api.jar:./lib/jaxws-rt.jar:./lib/jaxws-tools.jar:./lib/jsr173_api.jar:./lib/jsr181-api.jar:./lib/jsr250-api.jar:./lib/mail.jar:./lib/mimepull.jar:./lib/PrivacyCA.jar:./lib/resolver.jar:./lib/saaj-api.jar:./lib/saaj-impl.jar:./lib/SALlib_hibernate3.jar:./lib/stax-ex.jar:./lib/streambuffer.jar:./lib/TSSCoreService.jar:./lib/woodstox.jar:./lib/wsdl4j-1.5.1.jar"
     java -cp $provclasspath gov.niarl.his.privacyca.HisTpmProvisioner
     ret=$?
-    if [ $ret == 0 ] ; then
+    if [ "${ret}" = "0" ] ; then
       echo "Successfully initialized TPM"
     else
       echo "Failed to initialize the TPM, error $ret"
@@ -94,7 +94,7 @@ execute "provisioning_node" do
     
     java -cp $provclasspath gov.niarl.his.privacyca.HisIdentityProvisioner
     ret=$?
-    if [ $ret == 0 ]; then
+    if [ "${ret}" = "0" ]; then
       echo "Successfully received AIC from Privacy CA" >> provisioning.log
     else
       echo "Failed to receive AIC from Privacy CA, error $ret" >> provisioning.log
@@ -103,7 +103,7 @@ execute "provisioning_node" do
     
     java -cp $provclasspath gov.niarl.his.privacyca.HisRegisterIdentity
     ret=$?
-    if [ $ret == 0 ]; then
+    if [ "${ret}" = "0" ]; then
       echo "Successfully registered identity with appraiser" >> provisioning.log
     else
       echo "Failed to register identity with appraiser, error $ret" >> provisioning.log
