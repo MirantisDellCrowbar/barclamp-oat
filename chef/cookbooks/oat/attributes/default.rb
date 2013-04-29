@@ -16,13 +16,13 @@
 override[:oat][:user]="oat"
 
 # declare what needs to be monitored
-node[:oat][:monitor]={}
-node[:oat][:monitor][:svcs] = []
-node[:oat][:monitor][:ports]={}
-node[:oat][:owner_auth]=""
-node[:oat][:pcr]={}
+default[:oat][:monitor]={}
+default[:oat][:monitor][:svcs] = []
+default[:oat][:monitor][:ports]={}
+default[:oat][:owner_auth]=""
+default[:oat][:pcr]={}
 
-node[:oat][:server][:port] = 8443
-node[:oat][:server][:secure] = true
-node[:oat][:server][:secret] = nil
+default[:oat][:server][:port] = 8443
+default[:oat][:server][:secure] = true
+default[:oat][:server][:secret] = nil
 
