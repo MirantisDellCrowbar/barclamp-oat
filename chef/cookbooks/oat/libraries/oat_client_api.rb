@@ -51,7 +51,17 @@ module OATClient
     end
     case response.code.to_i
       when 200,202 then
-        response.body
+        if response.body == "True"
+          true
+        elsif response.body == "False"
+          false
+        elsif response.body == "null"
+          []
+        else
+          response = JSON.parse(response.body)
+          response = response[response.keys.first]
+          response.kind_of?(Hash) ? [response] : response
+        end
       else
         response = JSON.parse(response.body)
         raise RuntimeError.new("[#{response["error_code"]}] #{response["error_message"]}")
@@ -73,8 +83,6 @@ module OATClient
 
   # base class for other models
   class Base
-    # array of unique keys for check on existing
-    UNIQUE_KEYS = []
     def initialize params = {}
       params.each_pair do |key,value|
         next if value == "null"
@@ -99,22 +107,11 @@ module OATClient
       end
       result
     end
-    # exists current model on OAT server?
-    # @return [True, False]
-    def exists?
-      params = {}
-      UNIQUE_KEYS.each do |key|
-        params[key] = send(key)
-      end
-      self.class.search(params).any?
-    end
   end
 
   # class for work with models of operating systems
   class OS < Base
     attr_accessor :name, :version, :description
-    # array of unique keys for check on existing
-    UNIQUE_KEYS = [:name, :version]
     # search models by params
     def self.search params = {}
       super all, params
@@ -125,7 +122,7 @@ module OATClient
       OATClient::request(:delete, :path => "/WLMService/resources/os", :query => {
           :Name => name,
           :Version => version
-      }) == "True"
+      })
     end
     # save current model
     # @return [True,False]
@@ -135,29 +132,32 @@ module OATClient
           :Name => name,
           :Version => version,
           :Description => description
-      }) == "True"
+      })
     end
     # retrieve all OS models from server
     # @return [Array<OATClient::OS>]
     def self.all
-      models = JSON.parse(OATClient::request(:get, :path => "/WLMService/resources/os"))["os"]
+      models = OATClient::request(:get, :path => "/WLMService/resources/os")
       models.collect do |item|
         model = new(:name => item["Name"],:version => item["Version"],:description => item["Description"])
         model.not_new_model!
         model
       end
     end
+    # exists current model on OAT server?
+    # @return [True, False]
+    def exists?
+      self.class.search(:name => name).any?
+    end
   end
 
   # class for work with models of OEMs
   class OEM < Base
     attr_accessor :name, :description
-    # array of unique keys for check on existing
-    UNIQUE_KEYS = [:name]
     # retrieve all OS models from server
     # @return [Array<OATClient::OEM>]
     def self.all
-      models = JSON.parse(OATClient::request(:get, :path => "/WLMService/resources/oem"))["oem"]
+      models = OATClient::request :get, :path => "/WLMService/resources/oem"
       models.collect do |item|
         model = new(:name => item["Name"],:description => item["Description"])
         model.not_new_model!
@@ -175,27 +175,48 @@ module OATClient
       OATClient::request(type, :path => "/WLMService/resources/oem", :params => {
           :Name => name,
           :Description => description
-      }) == "True"
+      })
     end
     # delete current model
     # @return [True,False]
     def delete
       OATClient::request(:delete, :path => "/WLMService/resources/oem", :query => {
           :Name => name
-      }) == "True"
+      })
+    end
+    # exists current model on OAT server?
+    # @return [True, False]
+    def exists?
+      self.class.search(:name => name).any?
     end
   end
 
   # class for work with models of hosts
   class Host < Base
     attr_accessor :host_name, :ip_address, :port, :bios_name, :bios_version, :bios_oem, :vmm_name, :vmm_version, :vmm_os_name, :vmm_os_version, :addon_sonnection_string, :description, :email, :location
-    # array of unique keys for check on existing
-    UNIQUE_KEYS = [:host_name, :ip_address, :post, :bios_name, :bios_version, :bios_oem, :vmm_name, :vmm_version, :vmm_os_name, :vmm_os_version, :addon_sonnection_string, :email, :location]
+    # exists current model on OAT server?
+    # @return [True, False]
+    def exists?
+      self.class.search(
+          :host_name => host_name,
+          :ip_address => ip_address,
+          :port => port,
+          :bios_name => bios_name,
+          :bios_version => bios_version,
+          :bios_oem => bios_oem,
+          :vmm_name => vmm_name,
+          :vmm_version => vmm_version,
+          :vmm_os_name => vmm_os_name,
+          :vmm_os_version => vmm_os_version,
+          :addon_sonnection_string => addon_sonnection_string,
+          :email => email,
+          :location => location).any?
+    end
+
     # retrieve all OS models from server
     # @return [Array<OATClient::Host>]
     def self.all
-      models = JSON.parse(OATClient::request(:get, :path => "/AttestationService/resources/hosts", :query => {:searchCriteria => "?"}))["hostBean"]
-      models = [models] if models.kind_of?(Hash)
+      models = OATClient::request(:get, :path => "/AttestationService/resources/hosts", :query => {:searchCriteria => "?"})
       models.collect do |item|
         model = new(
             :host_name => item["HostName"],
@@ -236,7 +257,7 @@ module OATClient
           :Description => description,
           :Email => email,
           :Location => location
-      }) == "True"
+      })
     end
     # search models by params
     def self.search params = {}
@@ -247,19 +268,32 @@ module OATClient
     def delete
       OATClient::request(:delete, :path =>   "/AttestationService/resources/hosts", :query => {
           :hostName => host_name
-      }) == "True"
+      })
     end
   end
 
   # class for work with models of MLEs
   class MLE < Base
     attr_accessor :name, :version, :os_name, :os_version, :attestation_type, :mle_type, :description, :oem_name
-    # array of unique keys for check on existing
-    UNIQUE_KEYS = [:name, :version, :os_name, :os_version, :attestation_type, :mle_type, :oem_name]
+    # exists current model on OAT server?
+    # @return [True, False]
+    def exists?
+      self.class.search(
+          :name => name,
+          :version => version,
+          :os_name => os_name,
+          :os_version => os_version,
+          :attestation_type => attestation_type,
+          :mle_type => mle_type,
+          :oem_name => oem_name
+      ).any?
+    end
+
+
     # retrieve all OS models from server
     # @return [Array<OATClient::MLE>]
     def self.all
-      models = JSON.parse(OATClient::request(:get, :path => "/WLMService/resources/mles", :query => {:searchCriteria => ""}))["mleBean"]
+      models = OATClient::request(:get, :path => "/WLMService/resources/mles", :query => {:searchCriteria => ""})
       models.collect do |item|
         model = new(
             :name => item["Name"],
@@ -288,7 +322,7 @@ module OATClient
           :MLE_Type => mle_type,
           :Description => description,
           :OemName => oem_name
-      }) == "True"
+      })
     end
     # delete current model
     # @return [True,False]
@@ -300,7 +334,7 @@ module OATClient
           :oemName => oem_name,
           :osName => os_name,
           :osVersion => os_version,
-      }) == "True"
+      })
     end
     # search models by params
     def self.search params = {}
@@ -325,12 +359,11 @@ module OATClient
     end
     # build new manifest for current model
     # @return [OATClient::Manifest]
-    def build_manifest
-      Manifest.new(
-          :oem_name => oem_name,
-          :mle_name => name,
-          :mle_version => version
-      )
+    def build_manifest params
+      params[:oem_name] = oem_name
+      params[:mle_name] = name
+      params[:mle_version] = version
+      Manifest.new(params)
     end
     # search manifests in current model by params
     # @return [Array<OATClient::Manifest>]
@@ -352,7 +385,7 @@ module OATClient
           :mleName => mle_name,
           :mleVersion => mle_version,
           :oemName => oem_name
-      }) == "True"
+      })
     end
     # delete current model
     # @return [True,False]
@@ -362,8 +395,7 @@ module OATClient
           :mleName => mle_name,
           :mleVersion => mle_version,
           :oemName => oem_name
-      }) == "True"
+      })
     end
   end
-
 end
