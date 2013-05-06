@@ -12,17 +12,21 @@ require 'rubygems'
 require 'net/http'
 require 'net/https'
 require 'uri'
-require 'json'
+require 'json/pure'
 require 'cgi'
 
 # module OAT API Client
 module OATClient
-
+  class Exception < RuntimeError ; end
   # configuring OATClient
   # @param url [string] URL to server
   # @param secret [string] provide a password if required
-  def self.config url, secret = nil
+  # @param options [Hash] addition options { :retries => 5, :wait => 3 }
+  def self.config url, secret = nil, options = {}
     @url = url
+    @options = options
+    @options[:retries] ||= 5
+    @options[:wait] ||= 3
     @headers = { 'Content-Type' => 'application/json', 'Accept' => 'application/json' }
     @headers['Auth_blob'] = secret if secret
   end
@@ -43,37 +47,57 @@ module OATClient
     # delete key with nil values
     params.reject!{|_,value| value.nil? }
 
-    #puts "\n> #{type.upcase}: #{path}"
+    #puts "\n> #{type.to_s.upcase}: #{path}"
     #puts "> Query: #{query.inspect}"
     #puts "> Params: #{params.inspect}"
     #
     # prepare query with escape values
     query = (query || {}).collect{|key,value|"#{key.to_s}=#{CGI.escape(value)}"}.join("&")
-    case type
-      when :get,:delete then
-        response = connection.send(type,[path,query].join("?"),@headers)
-      when :put,:post then
-        response = connection.send(type, [path,query].join("?"), JSON.generate(params), @headers)
-      else
-        raise RuntimeError.new("unknown request type '#{type}'")
-    end
-    case response.code.to_i
-      when 200,202 then
-        if response.body == "True"
-          true
-        elsif response.body == "False"
-          false
-        elsif response.body == "null"
-          []
-        else
-          #  puts "Response: #{response.body}"
-          response = JSON.parse(response.body)
-          response = response[response.keys.first]
-          response.kind_of?(Hash) ? [response] : response
+
+    @options[:retries].times do |try|
+      begin
+        case type
+          when :get,:delete then
+            response = connection.send(type,[path,query].join("?"),@headers)
+          when :put,:post then
+            response = connection.send(type, [path,query].join("?"), JSON.generate(params), @headers)
+          else
+            raise RuntimeError.new("unknown request type '#{type}'")
         end
-      else
-        response = JSON.parse(response.body)
-        raise RuntimeError.new("[#{response["error_code"]}] #{response["error_message"]}")
+        case response.code.to_i
+          when 200,202 then
+            if response.body == "True"
+              return true
+            elsif response.body == "False"
+              return false
+            elsif response.body == "null"
+              return  []
+            else
+              begin
+                response = JSON response.body
+                response = response[response.keys.first]
+                response = response.kind_of?(Hash) ? [response] : response
+                return response
+              rescue JSON::ParserError
+                raise OATClient::Exception.new(response.body)
+              end
+            end
+          else
+            begin
+              response = JSON.parse(response.body)
+            rescue JSON::ParserError
+              raise OATClient::Exception.new(response.body)
+            end
+            raise OATClient::Exception.new("[#{response["error_code"]}] #{response["error_message"]}")
+        end
+      rescue OATClient::Exception => exception
+        if try+1 < @options[:retries]
+          puts "Receive error from OAT server, try repeat request"
+          sleep @options[:wait]
+          next
+        end
+        raise exception.message
+      end
     end
   end
 
@@ -314,13 +338,17 @@ module OATClient
             :description => item["Description"],
             :oem_name => item["OemName"]
         )
-
         if item["MLE_Manifests"]
-          model.manifests = item["MLE_Manifests"].collect{|manifest| MLE::Manifest.new(:name => manifest["Name"],:value => manifest["Value"].strip)}
+          item["MLE_Manifests"] = [item["MLE_Manifests"]] if item["MLE_Manifests"].kind_of? Hash
+          model.manifests = item["MLE_Manifests"].collect do |manifest|
+            MLE::Manifest.new(
+                :name => manifest["Name"],
+                :value => manifest["Value"].strip
+            )
+          end
         else
           model.manifests = []
         end
-
         model.not_new_model!
         model
       end

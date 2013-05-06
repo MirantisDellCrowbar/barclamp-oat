@@ -7,7 +7,7 @@ address=server.first.fqdn
 url = "http#{"s"if node[:oat][:server][:secure]}://#{address}:#{node[:oat][:server][:port]}"
 
 #configure OATClient
-OATClient::config url, node[:oat][:server][:secret]
+OATClient::config url, node[:oat][:server][:secret], :retries => 5, :wait => 2
 
 #search all agents
 agents = search(:node, "recipes:oat\\:\\:client") || []
