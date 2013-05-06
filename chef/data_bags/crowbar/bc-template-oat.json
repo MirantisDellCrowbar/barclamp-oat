@@ -8,6 +8,7 @@
         "user": "oat",
         "password": ""
       },
+      "apache_listen_port": "8383",
       "pcr_select_mask": "FFFFFF",
       "oa_attest_interval": 60000,
       "oa_attest_timeout": 60000,

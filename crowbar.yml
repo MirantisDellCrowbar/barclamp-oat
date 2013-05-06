@@ -96,6 +96,7 @@ locale_additions:
           alert_mail_port: SMTP port
           alert_mail_user: User
           alert_mail_pass: Password
+          apache_listen_port: OAT HIS portal port
           mysql_instance: MySQL
       oat_edit_deployment:
         deployment: Deployment
