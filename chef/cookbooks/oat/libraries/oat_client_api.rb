@@ -38,7 +38,15 @@ module OATClient
     query = options[:query] || {}
     params = options[:params] || {}
     # delete key with nil values
-    query.reject!{|key,value| value.nil? }
+    query.reject!{|_,value| value.nil? }
+
+    # delete key with nil values
+    params.reject!{|_,value| value.nil? }
+
+    #puts "\n> #{type.upcase}: #{path}"
+    #puts "> Query: #{query.inspect}"
+    #puts "> Params: #{params.inspect}"
+    #
     # prepare query with escape values
     query = (query || {}).collect{|key,value|"#{key.to_s}=#{CGI.escape(value)}"}.join("&")
     case type
@@ -58,6 +66,7 @@ module OATClient
         elsif response.body == "null"
           []
         else
+          #  puts "Response: #{response.body}"
           response = JSON.parse(response.body)
           response = response[response.keys.first]
           response.kind_of?(Hash) ? [response] : response
@@ -274,7 +283,7 @@ module OATClient
 
   # class for work with models of MLEs
   class MLE < Base
-    attr_accessor :name, :version, :os_name, :os_version, :attestation_type, :mle_type, :description, :oem_name
+    attr_accessor :name, :version, :os_name, :os_version, :attestation_type, :mle_type, :description, :oem_name, :manifests
     # exists current model on OAT server?
     # @return [True, False]
     def exists?
@@ -305,6 +314,13 @@ module OATClient
             :description => item["Description"],
             :oem_name => item["OemName"]
         )
+
+        if item["MLE_Manifests"]
+          model.manifests = item["MLE_Manifests"].collect{|manifest| MLE::Manifest.new(:name => manifest["Name"],:value => manifest["Value"].strip)}
+        else
+          model.manifests = []
+        end
+
         model.not_new_model!
         model
       end
@@ -321,7 +337,8 @@ module OATClient
           :Attestation_Type => attestation_type,
           :MLE_Type => mle_type,
           :Description => description,
-          :OemName => oem_name
+          :OemName => oem_name,
+          :MLE_Manifests => (manifests ? manifests.collect {|manifest| { :Name => manifest.name, :Value => manifest.value } } : nil)
       })
     end
     # delete current model
@@ -340,30 +357,10 @@ module OATClient
     def self.search params = {}
       super all, params
     end
-    # retrieve all manifests for current models from server
-    # @return [Array<OATClient::Manifest>]
-    def manifests
-      items = JSON.parse(OATClient::request(:get, :path => "/WLMService/resources/mles/manifest", :query => {:mleName => name, :mleVersion => version, :oemName => oem_name}))["MLE_Manifests"] || []
-      items = [items] if items.kind_of?(Hash)
-      items.collect do |item|
-        model = Manifest.new(
-            :name => item["Name"],
-            :value => item["Value"],
-            :oem_name => oem_name,
-            :mle_name => name,
-            :mle_version => version
-        )
-        model.not_new_model!
-        model
-      end
-    end
-    # build new manifest for current model
-    # @return [OATClient::Manifest]
-    def build_manifest params
-      params[:oem_name] = oem_name
-      params[:mle_name] = name
-      params[:mle_version] = version
-      Manifest.new(params)
+    # add new manifest for current model
+    def add_manifest params
+      @manifests ||= []
+      @manifests << MLE::Manifest.new(params)
     end
     # search manifests in current model by params
     # @return [Array<OATClient::Manifest>]
@@ -373,29 +370,8 @@ module OATClient
   end
 
   # class for work with models of manifests (PCR)
-  class Manifest < Base
-    attr_accessor :name, :value, :mle_name, :mle_version, :oem_name
-    # save current model
-    # @return [True,False]
-    def save
-      type = (@new_record == true) ? :post : :put
-      OATClient::request(type, :path =>  "/WLMService/resources/mles/whitelist/pcr", :params => {
-          :pcrName => name,
-          :pcrDigest => value,
-          :mleName => mle_name,
-          :mleVersion => mle_version,
-          :oemName => oem_name
-      })
-    end
-    # delete current model
-    # @return [True,False]
-    def delete
-      OATClient::request(:delete, :path =>   "/WLMService/resources/mles/whitelist/pcr", :query => {
-          :pcrName => name,
-          :mleName => mle_name,
-          :mleVersion => mle_version,
-          :oemName => oem_name
-      })
-    end
+  class MLE::Manifest < Base
+    attr_accessor :name, :value
   end
+
 end
