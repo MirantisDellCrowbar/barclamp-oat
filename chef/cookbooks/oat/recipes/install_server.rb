@@ -228,7 +228,7 @@ service "tomcat6" do
   subscribes :restart, "template[/etc/oat-appraiser/OAT.properties]"
 end
 
-node[:apache2][:listen_ports] << node[:oat][:apache_listen_port] unless node[:apache2][:listen_ports].include? node[:oat][:apache_listen_port]
+node[:apache][:listen_ports] << node[:oat][:apache_listen_port] unless node[:apache][:listen_ports].include? node[:oat][:apache_listen_port]
 include_recipe "apache2"
 
 template "#{node[:apache][:dir]}/sites-available/oat_vhost" do
