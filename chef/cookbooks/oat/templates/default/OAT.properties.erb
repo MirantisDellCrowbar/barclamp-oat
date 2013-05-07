@@ -5,11 +5,11 @@
 #ALERT_MASK_CSV=
 #WARNING: Please review the logs of the web server to find the results of the ALERT_MASK_CSV setting.
 ATTEST_TYPE=PCR
-ALERT_MASK_CSV=0
+ALERT_MASK_CSV=
 COMP_MASK=stmHash,xen.gz
 
 #PCR select for integrity reports
-PCR_SELECT=FFFFFF
+PCR_SELECT=<%= node[:oat][:pcr_select_mask] %>
 
 #############################################################################
 ####### Mail Properties
@@ -17,18 +17,17 @@ PCR_SELECT=FFFFFF
 
 ####### Message Properties
 #message.to is a comma separated list of email addresses
-alert.message.to=OATApp@dod.mil
+alert.message.to=<%= node[:oat][:alert_mail_to] %>
 alert.message.subject=OAT Alert Notification
 #message.body is a simple html email message (with the correct escape characters for a property)
 alert.message.body=An integrity alert has been triggered.  Please refer to the OAT portal for the OAT appraiser.  PLEASE DO NOT REPLY TO TOAT AUTOMATED MESSAGE.
 
 ####### JavaMail API Mail Properties
-mail.host=localhost
-mail.from=noreply@dod.mil
-# mail.user=
-# mail.password=
-# mail.store.protocol=
-# mail.transport.protocol=
-# mail.smtp.host=
-# mail.smtp.user=
-# mail.debug=
+mail.host=<%= node[:fqdn] %>
+mail.from=<%= node[:oat][:alert_mail_from] %>
+mail.user=<%= node[:oat][:alert_mail_user] %>
+mail.password=<%= node[:oat][:alert_mail_pass] %>
+mail.smtp.port=<%= node[:oat][:alert_mail_port] %>
+mail.smtp.host=<%= node[:oat][:alert_mail_host] %>
+mail.smtp.auth=true
+mail.smtp.starttls.enable=true

@@ -79,6 +79,25 @@ locale_additions:
       oat:
         edit_attributes:
           attributes: Attributes
+          oat_service_settings: OpenAttestation service settings
+          pcr_select_mask: PCR mask for integrity reports
+          oa_attest_interval: OpenAttestation attest interval
+          oa_attest_timeout: OpenAttestation attest timeout
+          oaws_check_attest_interval: OpenAttestationWebService check attest interval
+          oaws_attest_timeout: OpenAttestationWebService attest timeout
+          db_settings: Database settings
+          db_user: User
+          db_pass: Password (leave blank for autogenerating)
+          db_name: Database name
+          mail_alert_settings: Mail Alert settings
+          alert_mail_to: To
+          alert_mail_from: From
+          mail_alert_smtp_settings: SMTP settings
+          alert_mail_host: SMTP host
+          alert_mail_port: SMTP port
+          alert_mail_user: User
+          alert_mail_pass: Password
+          apache_listen_port: OAT HIS portal port
           mysql_instance: MySQL
       oat_edit_deployment:
         deployment: Deployment

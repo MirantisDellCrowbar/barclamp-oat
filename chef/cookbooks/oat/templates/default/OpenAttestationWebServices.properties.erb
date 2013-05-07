@@ -1,2 +1,2 @@
-default_attest_timeout=50000
-check_attest_interval=1000
+default_attest_timeout=<%= node[:oat][:oaws_attest_timeout] %>
+check_attest_interval=<%= node[:oat][:oaws_check_attest_interval] %>
