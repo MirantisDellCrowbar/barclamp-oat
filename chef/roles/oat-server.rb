@@ -1,7 +1,7 @@
 name "oat-server"
 description "Oat Server Role"
 run_list(
-         "recipe[oat::server]"
+         "recipe[oat::install_server]"
 )
 default_attributes()
 override_attributes()

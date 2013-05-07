@@ -30,14 +30,15 @@ end
 
 #install agent from remote oatapp
 #currently oat agent consists of a lot hardcoded path and so on, hope sometime oat will be properly packaged and released, but currently we have to install it in that way
-if node[:oat][:owner_auth]=""
-  node[:oat][:owner_auth]=(40.times.map{ rand(10) }).join
+if node[:oat][:owner_auth]==""
+  node.set[:oat][:owner_auth]=(40.times.map{ rand(10) }).join
+  node.save
 end
 
 source=oat_server[:fqdn]
 dist_name="ClientInstallForLinux.zip"
 contain="ClientInstallForLinux"
-clientpath="/usr/lib/OATClient"
+clientpath="/usr/lib/OATClient/"
 execute "install-agent" do
   cwd "/tmp/"
   command <<-EOF
@@ -55,12 +56,13 @@ execute "install-agent" do
 end
 
 template "/tmp/#{contain}/OAT.properties" do
-  source "OAT.properties.erb"
+  source "OAT_agent.properties.erb"
   variables(
     :source => source,
     :keyauth => node[:oat][:owner_auth],
-    :keyindex => 1
+    :keyindex => "1"
   )
+  not_if { ::File.exists?("/etc/init.d/OATClient") }
 end
 
 template "/tmp/#{contain}/OATprovisioner.properties" do
@@ -71,6 +73,7 @@ template "/tmp/#{contain}/OATprovisioner.properties" do
     :source => source,
     :clientpath => clientpath
   )
+  not_if { ::File.exists?("/etc/init.d/OATClient") }
 end
 
 
@@ -79,31 +82,32 @@ execute "provisioning_node" do
   command <<-EOF
     cd #{contain}
     #clear tpm creds
+    ./NIARL_TPM_Module -mode 2 -owner_auth #{node[:oat][:owner_auth]} -cred_type EC
     ./NIARL_TPM_Module -mode 14 -owner_auth #{node[:oat][:owner_auth]} -cred_type EC
     #some copy-and-paste of perfect oat code with an awesome solution
     export provclasspath=".:./lib/activation.jar:./lib/axis.jar:./lib/bcprov-jdk15-141.jar:./lib/commons-discovery-0.2.jar:./lib/commons-logging-1.0.4.jar:./lib/FastInfoset.jar:./lib/HisPrivacyCAWebServices-client.jar:./lib/HisPrivacyCAWebServices2-client.jar:./lib/HisWebServices-client.jar:./lib/http.jar:./lib/jaxb-api.jar:./lib/jaxb-impl.jar:./lib/jaxb-xjc.jar:./lib/jaxrpc.jar:./lib/jaxws-api.jar:./lib/jaxws-rt.jar:./lib/jaxws-tools.jar:./lib/jsr173_api.jar:./lib/jsr181-api.jar:./lib/jsr250-api.jar:./lib/mail.jar:./lib/mimepull.jar:./lib/PrivacyCA.jar:./lib/resolver.jar:./lib/saaj-api.jar:./lib/saaj-impl.jar:./lib/SALlib_hibernate3.jar:./lib/stax-ex.jar:./lib/streambuffer.jar:./lib/TSSCoreService.jar:./lib/woodstox.jar:./lib/wsdl4j-1.5.1.jar"
     java -cp $provclasspath gov.niarl.his.privacyca.HisTpmProvisioner
     ret=$?
-    if [ $ret == 0 ] ; then
+    if [ "${ret}" = "0" ] ; then
       echo "Successfully initialized TPM"
     else
       echo "Failed to initialize the TPM, error $ret"
       exit 1
     fi
-    
-    
+
+
     java -cp $provclasspath gov.niarl.his.privacyca.HisIdentityProvisioner
     ret=$?
-    if [ $ret == 0 ]; then
+    if [ "${ret}" = "0" ]; then
       echo "Successfully received AIC from Privacy CA" >> provisioning.log
     else
       echo "Failed to receive AIC from Privacy CA, error $ret" >> provisioning.log
       exit 1
     fi
-    
+
     java -cp $provclasspath gov.niarl.his.privacyca.HisRegisterIdentity
     ret=$?
-    if [ $ret == 0 ]; then
+    if [ "${ret}" = "0" ]; then
       echo "Successfully registered identity with appraiser" >> provisioning.log
     else
       echo "Failed to register identity with appraiser, error $ret" >> provisioning.log
@@ -114,27 +118,30 @@ execute "provisioning_node" do
   not_if { ::File.exists?("/etc/init.d/OATClient") }
 end
 
-service "OATClient" do
-  supports :status => true, :restart => true
-  action [:enable, :start]
-end 
-
 template "/etc/init.d/OATClient" do
+  mode 0755
   source "OATClient.erb"
   variables(
     :clientpath => clientpath
   )
-  notifies :restart, resources(:service => "OATClient")
 end
 
+
+
 template "#{clientpath}/OAT.properties" do
-  source "OAT.properties.erb"
+  source "OAT_agent.properties.erb"
   variables(
     :source => source,
     :keyauth => node[:oat][:owner_auth],
     :keyindex => 1
   )
-  notifies :restart, resources(:service => "OATClient")
 end
 
+
+service "OATClient" do
+  supports :status => true, :restart => true
+  action [:enable, :start]
+  subscribes :restart, resources(:template => "/etc/init.d/OATClient")
+  subscribes :restart, resources(:template => "#{clientpath}/OAT.properties")
+end
 
