@@ -62,7 +62,7 @@ dpkg_package pkg_name do
   source pkg_path
 end
 
-[ "apache2", "tomcat6", "zip", "unzip", "php5", "php5-mysql", "openssl" ].each { |p| package p }
+[ "tomcat6", "zip", "unzip", "php5", "php5-mysql", "openssl" ].each { |p| package p }
 
 #create dirs
 [ "/etc/oat-appraiser", "/var/lib/oat-appraiser", "/var/lib/oat-appraiser/ClientFiles",
@@ -228,8 +228,22 @@ service "tomcat6" do
   subscribes :restart, "template[/etc/oat-appraiser/OAT.properties]"
 end
 
-service "apache2" do
-  action [ :enable, :start ]
+node[:apache][:listen_ports] << node[:oat][:apache_listen_port] unless node[:apache][:listen_ports].include? node[:oat][:apache_listen_port]
+include_recipe "apache2"
+
+template "#{node[:apache][:dir]}/sites-available/oat_vhost" do
+  source "oat_vhost.erb"
+  mode 0644
+  variables(
+      :oat_dir => "/var/www/OAT"
+  )
+  if ::File.symlink?("#{node[:apache][:dir]}/sites-enabled/oat_vhost")
+    notifies :reload, resources(:service => "apache2")
+  end
+end
+
+apache_site "oat_vhost" do
+  enable true
 end
 
 bash "deploy_his_portal" do
@@ -267,9 +281,9 @@ bash "prepare_agent" do
     cp -r -f /var/lib/oat-appraiser/ClientFiles/PrivacyCA.cer ${out_dir}/
     cp -r -f /var/lib/oat-appraiser/ClientFiles/TrustStore.jks ${out_dir}/
     zip -9 -r ${out_dir}.zip ${out_dir}
-    cp ${out_dir}.zip /var/www/
+    cp ${out_dir}.zip /var/www/OAT/
   EOH
-  not_if { File.exists? "/var/www/ClientInstallForLinux.zip" }
+  not_if { File.exists? "/var/www/OAT/ClientInstallForLinux.zip" }
 end
 
 
