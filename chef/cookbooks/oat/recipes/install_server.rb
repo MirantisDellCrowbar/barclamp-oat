@@ -253,6 +253,7 @@ bash "deploy_his_portal" do
   unzip -o /${name}/OAT.zip -d /${name}/
   rm -rf /var/www/OAT
   mv -f /${name}/OAT /var/www/OAT
+  rm -f /var/www/OAT/ClientInstallForLinux.zip
   EOH
   not_if { File.exists? "/var/www/OAT" }
 end
