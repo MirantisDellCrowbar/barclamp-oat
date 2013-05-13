@@ -5,7 +5,7 @@ File.open("/sys/class/misc/tpm0/device/pcrs", "r") do |pcrs|
     line=line.split(":")
     pcr_n=line[0].split("-")[1].to_i
     pcr_v=line[1].delete(' ')
-    node[:oat][:pcr][pcr_n]=pcr_v
+    node[:oat][:pcr][pcr_n]=pcr_v.strip
   end
 end
 node.save

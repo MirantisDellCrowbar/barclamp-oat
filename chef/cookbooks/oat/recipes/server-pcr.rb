@@ -66,7 +66,7 @@ agents.each do |agent|
   else
     (0..7).each do |n|
       #####whitelist pcr with mle_oem_name mle_oem_version oem_name#####
-      mle_oem.add_manifest(:name => n.to_s, :value => agent[:oat][:pcr][n.to_s])
+      mle_oem.add_manifest(:name => n.to_s, :value => agent[:oat][:pcr][n.to_s].strip)
       Chef::Log.info("PCR #{n} for MLE #{mle_oem_type} #{mle_oem_name} #{mle_oem_version} has been added")
     end
     Chef::Log.info("MLE #{mle_oem_type} #{mle_oem_name} #{mle_oem_version} has been created") if mle_oem.save
@@ -93,7 +93,7 @@ agents.each do |agent|
   else
 
     (17..19).each do |n|
-      mle_vmm.add_manifest(:name => n.to_s, :value => agent[:oat][:pcr][n.to_s])
+      mle_vmm.add_manifest(:name => n.to_s, :value => agent[:oat][:pcr][n.to_s].strip)
       Chef::Log.info("PCR #{n} for MLE #{mle_vmm_type} #{mle_vmm_name} #{mle_vmm_version} has been added")
     end
     Chef::Log.info("MLE #{mle_vmm_type} #{mle_vmm_name} #{mle_vmm_version} has been created") if mle_vmm.save
