@@ -288,3 +288,5 @@ bash "prepare_agent" do
 end
 
 
+include_recipe "oat::server-pcr"
+
