@@ -289,4 +289,5 @@ end
 
 
 include_recipe "oat::server-pcr"
+include_recipe "oat::fill-flavors"
 
