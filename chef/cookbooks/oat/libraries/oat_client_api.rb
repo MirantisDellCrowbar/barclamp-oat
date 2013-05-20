@@ -12,7 +12,7 @@ require 'rubygems'
 require 'net/http'
 require 'net/https'
 require 'uri'
-require 'json/pure'
+#require 'json/pure'
 require 'cgi'
 
 # module OAT API Client
