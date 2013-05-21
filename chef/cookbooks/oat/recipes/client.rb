@@ -15,8 +15,8 @@ include_recipe "oat::pcr"
 #NOTE: assumed that server exists
 oat_server =( search(:node, "roles:oat-server") || [] ).first
 package "trousers"
-
 package "unzip"
+package "default-jre-headless"
 
 
 service "trousers" do
@@ -39,13 +39,14 @@ if node[:oat][:owner_auth]==""
 end
 
 source="#{oat_server[:fqdn]}:#{oat_server[:oat][:apache_listen_port]}"
+port=#{oat_server[:oat][:apache_listen_port]}
 dist_name="ClientInstallForLinux.zip"
 contain="ClientInstallForLinux"
 clientpath="/usr/lib/OATClient/"
 execute "install-agent" do
   cwd "/tmp/"
   command <<-EOF
-    wget http://#{source}/#{dist_name}
+    wget http://#{source}:#{port}/#{dist_name}
     unzip #{dist_name}
     cd #{contain}
     mkdir -p #{clientpath}
