@@ -16,6 +16,9 @@ include_recipe "oat::pcr"
 oat_server =( search(:node, "roles:oat-server") || [] ).first
 package "trousers"
 
+package "unzip"
+
+
 service "trousers" do
   supports :status => true, :restart => true
   action [:enable, :start]
