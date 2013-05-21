@@ -39,7 +39,7 @@ if node[:oat][:owner_auth]==""
 end
 
 source="#{oat_server[:fqdn]}:#{oat_server[:oat][:apache_listen_port]}"
-port=#{oat_server[:oat][:apache_listen_port]}
+port="#{oat_server[:oat][:apache_listen_port]}"
 dist_name="ClientInstallForLinux.zip"
 contain="ClientInstallForLinux"
 clientpath="/usr/lib/OATClient/"
