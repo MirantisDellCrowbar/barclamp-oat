@@ -25,4 +25,5 @@ default[:oat][:pcr]={}
 default[:oat][:server][:port] = 8443
 default[:oat][:server][:secure] = true
 default[:oat][:server][:secret] = nil
+default[:oat][:server][:client_package_ready] = false
 
