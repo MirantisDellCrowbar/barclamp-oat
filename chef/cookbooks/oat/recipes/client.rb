@@ -86,13 +86,14 @@ execute "provisioning_node" do
   command <<-EOF
     cd #{contain}
     #clear tpm creds
-    ./NIARL_TPM_Module -mode 2 -owner_auth #{node[:oat][:owner_auth]} -cred_type EC
+    #./NIARL_TPM_Module -mode 2 -owner_auth #{node[:oat][:owner_auth]} -cred_type EC
     ./NIARL_TPM_Module -mode 14 -owner_auth #{node[:oat][:owner_auth]} -cred_type EC
     #some copy-and-paste of perfect oat code with an awesome solution
     export provclasspath=".:./lib/activation.jar:./lib/axis.jar:./lib/bcprov-jdk15-141.jar:./lib/commons-discovery-0.2.jar:./lib/commons-logging-1.0.4.jar:./lib/FastInfoset.jar:./lib/HisPrivacyCAWebServices-client.jar:./lib/HisPrivacyCAWebServices2-client.jar:./lib/HisWebServices-client.jar:./lib/http.jar:./lib/jaxb-api.jar:./lib/jaxb-impl.jar:./lib/jaxb-xjc.jar:./lib/jaxrpc.jar:./lib/jaxws-api.jar:./lib/jaxws-rt.jar:./lib/jaxws-tools.jar:./lib/jsr173_api.jar:./lib/jsr181-api.jar:./lib/jsr250-api.jar:./lib/mail.jar:./lib/mimepull.jar:./lib/PrivacyCA.jar:./lib/resolver.jar:./lib/saaj-api.jar:./lib/saaj-impl.jar:./lib/SALlib_hibernate3.jar:./lib/stax-ex.jar:./lib/streambuffer.jar:./lib/TSSCoreService.jar:./lib/woodstox.jar:./lib/wsdl4j-1.5.1.jar"
     java -cp $provclasspath gov.niarl.his.privacyca.HisTpmProvisioner
     ret=$?
     if [ "${ret}" = "0" ] ; then
+      cp -f EC.cer #{clientpath}/
       echo "Successfully initialized TPM"
     else
       echo "Failed to initialize the TPM, error $ret"
