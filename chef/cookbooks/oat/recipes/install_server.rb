@@ -164,6 +164,9 @@ template "/etc/oat-appraiser/server.xml" do
   owner "tomcat6"
   group "tomcat6"
   source "server.xml.erb"
+  variables(
+    :listen_IP => Chef::Recipe::Barclamp::Inventory.get_network_by_type(node, "admin").address
+  )
 end
 
 bash "deploy_server_xml" do
