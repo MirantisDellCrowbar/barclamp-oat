@@ -38,6 +38,9 @@ if node[:oat][:owner_auth]==""
   node.save
 end
 
+# exitting if client package isn't ready
+return unless oat_server[:oat][:server][:client_package_ready]
+
 source="#{oat_server[:fqdn]}:#{oat_server[:oat][:apache_listen_port]}"
 port="#{oat_server[:oat][:apache_listen_port]}"
 dist_name="ClientInstallForLinux.zip"

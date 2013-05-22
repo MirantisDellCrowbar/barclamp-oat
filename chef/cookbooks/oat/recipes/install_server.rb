@@ -272,6 +272,16 @@ template "/var/www/OAT/includes/dbconnect.php" do
   notifies :restart, "service[apache2]"  
 end
 
+# appraiser will create PrivacyCA only after successful startup
+ruby_block "sleep_after_startup" do
+  block do
+    sleep 60 
+  end
+  action :nothing
+  not_if { File.exists? "/var/www/OAT/ClientInstallForLinux.zip" }
+  subscribes :restart, "service[tomcat6]", :immediately
+end
+
 # prepare agent
 bash "prepare_agent" do
   cwd "/#{inst_name}"
@@ -287,10 +297,22 @@ bash "prepare_agent" do
     zip -9 -r ${out_dir}.zip ${out_dir}
     cp ${out_dir}.zip /var/www/OAT/
   EOH
+  action :nothing
+  subscribes :create, "ruby_block[sleep_after_startup]"
   not_if { File.exists? "/var/www/OAT/ClientInstallForLinux.zip" }
+  only_if { File.exists? "/var/lib/oat-appraiser/ClientFiles/PrivacyCA.cer" }
+  only_if { File.exists? "/var/lib/oat-appraiser/ClientFiles/TrustStore.jks" }
 end
 
+# appraiser will create PrivacyCA only after successful startup
+ruby_block "set_client_package_ready" do
+  block do
+    node.set[:oat][:server][:client_package_ready] = true 
+  end
+  action :nothing
+  subscribes :create, "bash[prepare_agent]"
+end
 
 include_recipe "oat::server-pcr"
 include_recipe "oat::fill-flavors"
-
+node.save
