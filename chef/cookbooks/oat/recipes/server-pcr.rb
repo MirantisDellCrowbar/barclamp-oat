@@ -9,13 +9,11 @@ server = search(:node, "roles:oat-server") || []
 address = Chef::Recipe::Barclamp::Inventory.get_network_by_type(server.first, "admin").address
 #address=server.first.fqdn
 url = "http#{"s"if node[:oat][:server][:secure]}://#{address}:#{node[:oat][:server][:port]}"
-puts url
 #configure OATClient
 
 #search all agents
 agents = search(:node, "recipes:oat\\:\\:client") || []
 if agents.size > 0
-puts "LOL1"
 OATClient::config url, node[:oat][:server][:secret], :retries => 5, :wait => 2
 end
 
