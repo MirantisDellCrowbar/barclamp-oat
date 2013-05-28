@@ -41,11 +41,13 @@ end
 # exitting if client package isn't ready
 return unless oat_server[:oat][:server][:client_package_ready]
 
-source="#{oat_server[:fqdn]}:#{oat_server[:oat][:apache_listen_port]}"
+source=address = "#{oat_server[:fqdn]}"
+#Chef::Recipe::Barclamp::Inventory.get_network_by_type(oat_server, "admin").address
 port="#{oat_server[:oat][:apache_listen_port]}"
 dist_name="ClientInstallForLinux.zip"
 contain="ClientInstallForLinux"
 clientpath="/usr/lib/OATClient/"
+puts "http://#{source}:#{port}/#{dist_name}"
 execute "install-agent" do
   cwd "/tmp/"
   command <<-EOF

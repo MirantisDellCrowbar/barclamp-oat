@@ -223,12 +223,12 @@ end
 
 service "tomcat6" do
   action [ :enable, :start ]
-  subscribes :restart, "bash[deploy_wars]"
-  subscribes :restart, "bash[create_keystore_and_truststore]"
-  subscribes :restart, "bash[deploy_server_xml]"
-  subscribes :restart, "template[/etc/oat-appraiser/OpenAttestation.properties]"
-  subscribes :restart, "template[/etc/oat-appraiser/OpenAttestationWebServices.properties]"
-  subscribes :restart, "template[/etc/oat-appraiser/OAT.properties]"
+  subscribes :restart, "bash[deploy_wars]", :immediately
+  subscribes :restart, "bash[create_keystore_and_truststore]", :immediately
+  subscribes :restart, "bash[deploy_server_xml]", :immediately
+  subscribes :restart, "template[/etc/oat-appraiser/OpenAttestation.properties]", :immediately
+  subscribes :restart, "template[/etc/oat-appraiser/OpenAttestationWebServices.properties]", :immediately
+  subscribes :restart, "template[/etc/oat-appraiser/OAT.properties]", :immediately
 end
 
 node[:apache][:listen_ports] << node[:oat][:apache_listen_port] unless node[:apache][:listen_ports].include? node[:oat][:apache_listen_port]
@@ -279,7 +279,7 @@ ruby_block "sleep_after_startup" do
   end
   action :nothing
   not_if { File.exists? "/var/www/OAT/ClientInstallForLinux.zip" }
-  subscribes :restart, "service[tomcat6]", :immediately
+  subscribes :create, "service[tomcat6]", :immediately
 end
 
 # prepare agent
@@ -298,7 +298,7 @@ bash "prepare_agent" do
     cp ${out_dir}.zip /var/www/OAT/
   EOH
   action :nothing
-  subscribes :create, "ruby_block[sleep_after_startup]"
+  subscribes :run, "ruby_block[sleep_after_startup]", :immediately
   not_if { File.exists? "/var/www/OAT/ClientInstallForLinux.zip" }
   only_if { File.exists? "/var/lib/oat-appraiser/ClientFiles/PrivacyCA.cer" }
   only_if { File.exists? "/var/lib/oat-appraiser/ClientFiles/TrustStore.jks" }

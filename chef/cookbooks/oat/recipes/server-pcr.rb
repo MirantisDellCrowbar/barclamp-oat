@@ -1,16 +1,23 @@
 #this part should be executed after pcr.rb gathered all clients pcrs
 
+ruby_block "fill_oat_wl" do
+block do
+
+
 #prepare url
 server = search(:node, "roles:oat-server") || []
-#address = Chef::Recipe::Barclamp::Inventory.get_network_by_type(server.first, "admin").address
-address=server.first.fqdn
+address = Chef::Recipe::Barclamp::Inventory.get_network_by_type(server.first, "admin").address
+#address=server.first.fqdn
 url = "http#{"s"if node[:oat][:server][:secure]}://#{address}:#{node[:oat][:server][:port]}"
-
+puts url
 #configure OATClient
-OATClient::config url, node[:oat][:server][:secret], :retries => 5, :wait => 2
 
 #search all agents
 agents = search(:node, "recipes:oat\\:\\:client") || []
+if agents.size > 0
+puts "LOL1"
+OATClient::config url, node[:oat][:server][:secret], :retries => 5, :wait => 2
+end
 
 agents.each do |agent|
   #add all the agents into oat
@@ -126,4 +133,9 @@ agents.each do |agent|
     Chef::Log.info("Host #{host_name} #{host_ip}:#{host_port} has been created") if host.save
   end
 
+end
+
+
+end
+action :create
 end
