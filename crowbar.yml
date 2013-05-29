@@ -56,6 +56,8 @@ debs:
     - tpm-tools
     - dbconfig-common
     - tboot
+    - wsmancli
+    - libopenwsman1
   ubuntu-12.04:
     build_pkgs:
       - ant
@@ -69,6 +71,7 @@ debs:
       - zip
     repos:
       - deb http://archive.canonical.com/ubuntu precise partner
+      - deb http://ppa.launchpad.net/jared-dominguez/wsmancli/ubuntu precise main
     build_cmd: build.sh
     
 locale_additions:
