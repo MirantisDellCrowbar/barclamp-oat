@@ -75,7 +75,18 @@ class OatService < ServiceObject
     rescue
       nm["db"]["password"] = random_password
     end
-    role.save 
+    role.save
+    all_nodes.each do |n|
+      node = NodeObject.find_node_by_name(n)
+      if node.roles.include? "oat-server"
+        address = node.get_network_by_type("admin")["address"]
+        node.crowbar["crowbar"] = {} if node.crowbar["crowbar"].nil?
+        node.crowbar["crowbar"]["links"] = {} if node.crowbar["crowbar"]["links"].nil?
+        url = "http#{"s"if node[:oat][:server][:secure]}://#{address}:#{node[:oat][:server][:port]}"
+        node.crowbar["crowbar"]["links"]["OpenAttestation UI"] = url
+        node.save
+      end
+    end
     @logger.debug("Oat apply_role_pre_chef_call: leaving")
   end
 
