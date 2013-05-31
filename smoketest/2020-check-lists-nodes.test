@@ -1,0 +1,42 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'chef/rest'
+require 'chef/node'
+require 'chef/search/query'
+require 'net/http'
+require 'net/https'
+require 'uri'
+require 'json/pure'
+
+begin
+  Chef::Config.from_file(File.expand_path("~/.chef/knife.rb"))
+  query = Chef::Search::Query.new
+
+  server = query.search('node', 'roles:oat-server').first.first rescue raise("oat-server not found")
+  clients = query.search('node', 'roles:oat-client').first.collect{|client| client[:fqdn].split('.').first} rescue []
+  url = "http#{"s"if server[:oat][:server][:secure]}://#{server[:fqdn]}:#{server[:oat][:server][:port]}"
+
+  uri = URI.parse(url)
+  connection = Net::HTTP.new(uri.host, uri.port)
+
+  if uri.scheme == "https"
+    connection.use_ssl = true
+    connection.verify_mode = OpenSSL::SSL::VERIFY_NONE
+  end
+
+  response = connection.get "/AttestationService/resources/hosts", { 'Content-Type' => 'application/json', 'Accept' => 'application/json' }
+  hosts = JSON.parse(response.body)["hostBean"] rescue raise("bad response from server")
+
+  hosts = hosts.collect{|host| host["HostName"]}
+
+  if hosts == clients
+    puts "Check that lists are equal"
+  else
+    raise "Different lists of trusted and agents nodes (agents:[#{clients.join(", ")}] trusted:[#{hosts.join(", ")}])"
+  end
+  puts "Check that lists are equal"
+rescue => e
+  puts e.message
+  exit(1)
+end

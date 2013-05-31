@@ -4,6 +4,9 @@
 #
 #
 
+tpm_active=%x{cat /sys/class/misc/tpm0/device/active}
+tpm_enabled=%x{cat /sys/class/misc/tpm0/device/enabled}
+
 include_recipe "oat::bios"
 include_recipe "oat::tboot"
 #if necesary (bios updated or tboot is installed or something)
@@ -39,13 +42,17 @@ if node[:oat][:owner_auth]==""
 end
 
 # exitting if client package isn't ready
-return unless oat_server[:oat][:server][:client_package_ready]
+if tpm_active!="1" or tpm_enabled!="1" or not oat_server[:oat][:server][:client_package_ready]
+  return
+end
 
-source="#{oat_server[:fqdn]}:#{oat_server[:oat][:apache_listen_port]}"
+source=address = "#{oat_server[:fqdn]}"
+#Chef::Recipe::Barclamp::Inventory.get_network_by_type(oat_server, "admin").address
 port="#{oat_server[:oat][:apache_listen_port]}"
 dist_name="ClientInstallForLinux.zip"
 contain="ClientInstallForLinux"
 clientpath="/usr/lib/OATClient/"
+puts "http://#{source}:#{port}/#{dist_name}"
 execute "install-agent" do
   cwd "/tmp/"
   command <<-EOF
