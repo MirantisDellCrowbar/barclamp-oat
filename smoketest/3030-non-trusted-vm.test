@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2011, Dell
+# Copyright 2013, Mirantis
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -66,11 +66,6 @@ export OS_USERNAME="admin"
 export OS_PASSWORD="crowbar"
 export OS_TENANT_NAME="admin"
 
-echo "Fetching OAT client list..."
-oat_clients=($(knife_node_find "roles:nova-multi-compute" IP))
-echo OAT clients are $oat_clients
-echo ${oat_clients[1]}
-
 echo "Finding OAT Server..."
 oat_server_ip=$(knife_node_find 'roles:oat-server' FQDN)
 if [[ ! $oat_server_ip ]]; then
@@ -88,7 +83,6 @@ for i in "${compute_ip[@]}"; do
     host=`echo $i | awk -F. '{ print $1 }'`
     echo "{\"hosts\":[\"$host\"]}" > hostfile
     trust_lvl=`curl --cacert certfile.cer -H "Content-Type: application/json" -X POST -d @hostfile "https://$oat_server_ip:8443/AttestationService/resources/PollHosts" | grep trusted | wc -l`
-    echo $trust_lvl
     if [[ $trust_lvl == 0 ]]; then
         echo "Stop nova compute on non-trusted host $host"
         run_on $host "/etc/init.d/nova-compute stop"
@@ -154,7 +148,6 @@ for i in "${compute_ip[@]}"; do
     host=`echo $i | awk -F. '{ print $1 }'`
     echo "{\"hosts\":[\"$host\"]}" > hostfile
     trust_lvl=`curl --cacert certfile.cer -H "Content-Type: application/json" -X POST -d @hostfile "https://$oat_server_ip:8443/AttestationService/resources/PollHosts" | grep trusted | wc -l`
-    echo $trust_lvl
     if [[ $trust_lvl == 0 ]]; then
         echo "Start nova compute on non-trusted host $host"
         run_on $host "/etc/init.d/nova-compute start"
