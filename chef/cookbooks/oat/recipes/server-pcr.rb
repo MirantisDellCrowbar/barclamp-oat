@@ -18,6 +18,9 @@ OATClient::config url, node[:oat][:server][:secret], :retries => 5, :wait => 2
 end
 
 agents.each do |agent|
+  if agent[:oat][:pcr].size == 0
+    next
+  end
   #add all the agents into oat
   # TODO: (eshurmin@mirantis.com) agent[:name] is empty but must be contain correct name
   agent_name = agent[:hostname] || "unknown"

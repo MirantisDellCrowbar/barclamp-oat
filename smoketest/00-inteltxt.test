@@ -67,6 +67,17 @@ export OS_USERNAME="admin"
 export OS_PASSWORD="crowbar"
 export OS_TENANT_NAME="admin"
 
+#TEST 2010 self tests
+echo "Test 2010: OAT server self tests"
+ruby 2010-run-self.test
+run_on $oat_server_ip 'chef-client'
+cat /tmp/Result
+echo Passed `cat /tmp/Result  | grep ':.*Passed' | wc -l`
+echo Failed `cat /tmp/Result  | grep -i ':.*fail' | wc -l`
+
+#TEST 2020 diff between chef oat-client roles and oat-appraiser response
+ruby 2020-check-lists-nodes.test
+
 echo "Test 2030: Reboot"
 
 echo "Rebooting $oat_clients..."

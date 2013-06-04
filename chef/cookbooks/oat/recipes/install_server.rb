@@ -259,6 +259,7 @@ bash "deploy_his_portal" do
   rm -f /var/www/OAT/ClientInstallForLinux.zip
   EOH
   not_if { File.exists? "/var/www/OAT" }
+  subscribes :run, "ruby_block[sleep_after_startup]", :immediately
 end
 
 template "/var/www/OAT/includes/dbconnect.php" do
@@ -298,7 +299,7 @@ bash "prepare_agent" do
     cp ${out_dir}.zip /var/www/OAT/
   EOH
   action :nothing
-  subscribes :run, "ruby_block[sleep_after_startup]", :immediately
+  subscribes :run, "bash[deploy_his_portal]", :immediately
   not_if { File.exists? "/var/www/OAT/ClientInstallForLinux.zip" }
   only_if { File.exists? "/var/lib/oat-appraiser/ClientFiles/PrivacyCA.cer" }
   only_if { File.exists? "/var/lib/oat-appraiser/ClientFiles/TrustStore.jks" }
@@ -307,10 +308,11 @@ end
 # appraiser will create PrivacyCA only after successful startup
 ruby_block "set_client_package_ready" do
   block do
-    node.set[:oat][:server][:client_package_ready] = true 
+    node.set[:oat][:server][:client_package_ready] = true
+    node.save
   end
   action :nothing
-  subscribes :create, "bash[prepare_agent]"
+  subscribes :create, "bash[prepare_agent]", :immediately
 end
 
 include_recipe "oat::server-pcr"

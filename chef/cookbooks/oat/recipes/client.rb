@@ -4,19 +4,24 @@
 #
 #
 
-tpm_active=%x{cat /sys/class/misc/tpm0/device/active}
-tpm_enabled=%x{cat /sys/class/misc/tpm0/device/enabled}
+tpm_active = File.exist?("/sys/class/misc/tpm0/device/active") ? File.read("/sys/class/misc/tpm0/device/active").to_i : 0
+tpm_enabled = File.exist?("/sys/class/misc/tpm0/device/enabled") ? File.read("/sys/class/misc/tpm0/device/enabled").to_i : 0
+
+
+#NOTE: assumed that server exists
+oat_server =( search(:node, "roles:oat-server") || [] ).first
 
 include_recipe "oat::bios"
 include_recipe "oat::tboot"
 #if necesary (bios updated or tboot is installed or something)
+if tpm_active != 1 or tpm_enabled != 1 or not oat_server[:oat][:server][:client_package_ready]
+  return
+end
 include_recipe "oat::reboot"
 #end
 include_recipe "oat::pcr"
 
 
-#NOTE: assumed that server exists
-oat_server =( search(:node, "roles:oat-server") || [] ).first
 package "trousers"
 package "unzip"
 package "default-jre-headless"
@@ -42,9 +47,6 @@ if node[:oat][:owner_auth]==""
 end
 
 # exitting if client package isn't ready
-if tpm_active!="1" or tpm_enabled!="1" or not oat_server[:oat][:server][:client_package_ready]
-  return
-end
 
 source=address = "#{oat_server[:fqdn]}"
 #Chef::Recipe::Barclamp::Inventory.get_network_by_type(oat_server, "admin").address
