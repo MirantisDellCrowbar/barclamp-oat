@@ -15,18 +15,6 @@
 ip_re='(([0-9]{1,3}\.){3}[0-9]{1,3})'
 declare -a instances
 
-cleanup() {
-    trap '' QUIT TERM
-    local instance_name
-    for instance_name in "${instances[@]}"; do
-        nova console-log $instance_name > "$LOGDIR/nova-$instance_name.console.log"
-        nova delete $instance_name
-        while nova list |grep -q $instance_name; do sleep 1; done
-    done
-    ssh-agent -k
-}
-
-trap cleanup EXIT QUIT TERM
 
 die() {
     res=$1
@@ -58,6 +46,29 @@ echo "OAT Server at $oat_server_ip"
 echo "Fetching OAT certificate..."
 echo quit | openssl s_client -connect $oat_server_ip:8443 -cipher DHE-RSA-AES256-SHA | tee certfile.cer
 
+echo "Finding Nova controller..."
+nova_ip=$(knife_node_find 'roles:nova-multi-controller' FQDN)
+if ! [[ $nova_ip ]]; then
+    echo "Could not find nova controller."
+    exit 1
+fi
+echo "Controller at $nova_ip. Verifying nova services..."
+
+echo "Finding keystone..."
+keystone_ip=$(knife_node_find 'roles:keystone-server' IP)
+if [[ ! $keystone_ip ]]; then
+    die 1 "Cannot find Keystone"
+fi
+
+echo "Keystone found at $keystone_ip"
+
+export OS_AUTH_URL="http://$keystone_ip:5000/v2.0"
+export OS_USERNAME="admin"
+export OS_PASSWORD="crowbar"
+export OS_TENANT_NAME="admin"
+
+echo "Test 2030: Reboot"
+
 echo "Rebooting $oat_clients..."
 ssh $oat_clients "reboot"
 
@@ -86,6 +97,54 @@ if [[ $trust_lvl == 1 ]]; then
 else
     die 1 "Reboot OAT agent node test failed"
 fi
+
+echo "Test 3010: Trusted VM"
+
+sudo apt-get install -y python-novaclient python-quantumclient
+
+test_image=''
+image_re='([-0-9a-f]+) \| ([^ ]+-image) | ACTIVE'
+
+while read line;do
+    [[ $line =~ $image_re ]] || continue
+    test_image="${BASH_REMATCH[1]}"
+    echo $test_image
+    break
+done < <(nova_do $nova_ip nova image-list |tee \
+    "$LOGDIR/nova-images.status")
+if [[ ! $test_image ]]; then
+    echo "Could not find a test image to run on Nova"
+    exit 1
+fi
+
+instance_name="oat-trusted"
+
+run_on $nova_ip nova-manage instance_type set_key m1.tiny trust:trusted_host trusted
+
+echo "Launching $instance_name with $test_image"
+(
+    nova_do $nova_ip nova boot --poll --image $test_image --flavor m1.tiny $instance_name  | \
+        tee "$LOGDIR/nova-$instance_name.status"
+) 
+sleep 2
+
+if nova_do $nova_ip nova show $instance_name |grep -q 'status.*ACTIVE'; then
+    echo "$instance_name launched."
+else
+    die 1 "Failed to launch $instance_name"
+fi
+
+nova_do $nova_ip nova show $instance_name > "$LOGDIR/nova-$instance_name.status"
+[[ $(grep 'private network' "$LOGDIR/nova-$instance_name.status") =~ $ip_re ]] || \
+    die 1 "$instance_name has no IP!"
+echo "$instance_name at IP ${BASH_REMATCH[1]}"
+
+echo "Deleting $instance_name..."
+nova_do $nova_ip nova delete $instance_name
+
+echo "Trusted VM deploy passed."
+
+
 
 echo "Test 3030: Non-trusted VM"
 
