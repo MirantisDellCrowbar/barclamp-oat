@@ -87,4 +87,73 @@ else
     die 1 "Reboot OAT agent node test failed"
 fi
 
+echo "Test 3030: Non-trusted VM"
 
+echo "Disabling non-trusted nodes..."
+compute_ip=($(knife_node_find 'roles:nova-multi-compute' FQDN))
+
+for i in "${compute_ip[@]}"; do
+    host=`echo $i | awk -F. '{ print $1 }'`
+    echo "{\"hosts\":[\"$host\"]}" > hostfile
+    trust_lvl=`curl --cacert certfile.cer -H "Content-Type: application/json" -X POST -d @hostfile "https://$oat_server_ip:8443/AttestationService/resources/PollHosts" | grep trusted | wc -l`
+    if [[ $trust_lvl == 0 ]]; then
+        echo "Stop nova compute on non-trusted host $host"
+        run_on $host "/etc/init.d/nova-compute stop"
+    fi
+done
+
+test_image=''
+image_re='([-0-9a-f]+) \| ([^ ]+-image) | ACTIVE'
+
+while read line;do
+    [[ $line =~ $image_re ]] || continue
+    test_image="${BASH_REMATCH[1]}"
+    echo $test_image
+    break
+done < <(nova_do $nova_ip nova image-list |tee \
+    "$LOGDIR/nova-images.status")
+if [[ ! $test_image ]]; then
+    echo "Could not find a test image to run on Nova"
+    exit 1
+fi
+
+instance_name="oat-non-trusted"
+
+run_on $nova_ip nova-manage instance_type unset_key m1.tiny trust:trusted_host
+
+echo "Launching $instance_name with $test_image"
+(
+    nova_do $nova_ip nova boot --poll --image $test_image --flavor m1.tiny $instance_name  | \
+        tee "$LOGDIR/nova-$instance_name.status"
+) 
+sleep 2
+
+if nova_do $nova_ip nova show $instance_name |grep -q 'status.*ACTIVE'; then
+    echo "$instance_name launched."
+else
+    die 1 "Failed to launch $instance_name"
+fi
+
+nova_do $nova_ip nova show $instance_name > "$LOGDIR/nova-$instance_name.status"
+[[ $(grep 'private network' "$LOGDIR/nova-$instance_name.status") =~ $ip_re ]] || \
+    die 1 "$instance_name has no IP!"
+echo "$instance_name at IP ${BASH_REMATCH[1]}"
+
+echo "Deleting $instance_name..."
+nova_do $nova_ip nova delete $instance_name
+
+echo "Enabling non-trusted nodes..."
+compute_ip=($(knife_node_find 'roles:nova-multi-compute' FQDN))
+
+for i in "${compute_ip[@]}"; do
+    host=`echo $i | awk -F. '{ print $1 }'`
+    echo "{\"hosts\":[\"$host\"]}" > hostfile
+    trust_lvl=`curl --cacert certfile.cer -H "Content-Type: application/json" -X POST -d @hostfile "https://$oat_server_ip:8443/AttestationService/resources/PollHosts" | grep trusted | wc -l`
+    if [[ $trust_lvl == 0 ]]; then
+        echo "Start nova compute on non-trusted host $host"
+        run_on $host "/etc/init.d/nova-compute start"
+    fi
+done
+
+echo "Non-trusted VM deploy passed."
+exit 0
