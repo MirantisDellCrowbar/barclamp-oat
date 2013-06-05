@@ -298,7 +298,7 @@ bash "prepare_agent" do
     zip -9 -r ${out_dir}.zip ${out_dir}
     cp ${out_dir}.zip /var/www/OAT/
   EOH
-  action :nothing
+  action :run
   subscribes :run, "bash[deploy_his_portal]", :immediately
   not_if { File.exists? "/var/www/OAT/ClientInstallForLinux.zip" }
   only_if { File.exists? "/var/lib/oat-appraiser/ClientFiles/PrivacyCA.cer" }
