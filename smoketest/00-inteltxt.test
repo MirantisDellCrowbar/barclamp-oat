@@ -69,6 +69,7 @@ export OS_TENANT_NAME="admin"
 
 #TEST 2010 self tests
 echo "Test 2010: OAT server self tests"
+apt-get -y install ruby-mysql
 ruby 2010-run-self.test
 run_on $oat_server_ip 'chef-client'
 cat /tmp/Result
